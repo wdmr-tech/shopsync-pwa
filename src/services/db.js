@@ -57,25 +57,27 @@ export const db = {
 
   // Crea una nueva lista
   createList: async (name, emoji = '📝', plannedDate = '') => {
-    // Primero, incrementar sort_order de todas las listas existentes para hacer espacio al inicio
-    await supabase.rpc('increment_sort_order_not_exists', {}).catch(() => {
-      // Si la función RPC no existe, hacemos el update directo
-    });
+    // Primero, intentar incrementar sort_order vía RPC (más eficiente y atómico)
+    const { error: rpcError } = await supabase.rpc('increment_sort_order_not_exists');
 
-    // Incrementar sort_order de las listas existentes
-    const { data: existingLists } = await supabase
-      .from('lists')
-      .select('id, sort_order')
-      .order('sort_order', { ascending: true });
+    // Si la función RPC no existe o falla, hacemos el update manual
+    if (rpcError) {
+      const { data: existingLists } = await supabase
+        .from('lists')
+        .select('id, sort_order')
+        .order('sort_order', { ascending: true });
 
-    if (existingLists && existingLists.length > 0) {
-      const batchUpdates = existingLists.map((list) =>
-        supabase
-          .from('lists')
-          .update({ sort_order: list.sort_order + 1 })
-          .eq('id', list.id)
-      );
-      await Promise.all(batchUpdates);
+      if (existingLists && existingLists.length > 0) {
+        const batchUpdates = existingLists.map((list) =>
+          supabase
+            .from('lists')
+            .update({ sort_order: list.sort_order + 1 })
+            .eq('id', list.id)
+        );
+        const results = await Promise.all(batchUpdates);
+        const failed = results.find((r) => r.error);
+        if (failed) throw failed.error;
+      }
     }
 
     const { data, error } = await supabase
