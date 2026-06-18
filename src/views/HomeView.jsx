@@ -1,0 +1,382 @@
+import { useState, useEffect, useRef } from 'react';
+import { Plus, GripVertical, Trash2, AlertTriangle, Calendar } from 'lucide-react';
+import { motion, AnimatePresence, useAnimation, Reorder } from 'framer-motion';
+import { getListStatus } from '../utils/productDictionary';
+
+
+
+// ─── Filtros disponibles ───────────────────────────────────────────────────────
+const FILTERS = ['Pendientes', 'En progreso', 'Completadas', 'Todas'];
+
+
+
+// ─── Componente de tarjeta con Swipe-to-Delete ────────────────────────────────
+function ListCard({ list, onClick, onSwipeDelete }) {
+  const controls = useAnimation(); // Control manual de la animación
+  const isDragging = useRef(false);
+
+  // Formatear fecha para mostrarse de forma amigable (ej. "25 Oct")
+  const formatListDate = (dateString) => {
+    if (!dateString) return null;
+    const parts = dateString.split('-');
+    if (parts.length === 3) {
+      const year = parseInt(parts[0], 10);
+      const month = parseInt(parts[1], 10) - 1; // Mes en JS es 0-11
+      const day = parseInt(parts[2], 10);
+      const date = new Date(year, month, day);
+      return new Intl.DateTimeFormat('es-ES', { day: 'numeric', month: 'short' }).format(date);
+    }
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat('es-ES', { day: 'numeric', month: 'short' }).format(date);
+  };
+
+  // Forzar que vuelva a 0 si cambian las dependencias o se cancela
+  useEffect(() => {
+    controls.start({ x: 0 });
+  }, [list.id, controls]);
+
+  const handleDragEnd = async (event, info) => {
+    // Retrasamos el reset para que el onClick no se dispare justo al soltar
+    setTimeout(() => { isDragging.current = false; }, 150);
+
+    if (info.offset.x < -60) {
+      onSwipeDelete(list.id); 
+    }
+    // IMPORTANTE: Inmediatamente después del drag, fuerza la tarjeta de vuelta a su lugar suavemente
+    controls.start({ x: 0, transition: { type: "spring", stiffness: 300, damping: 30 } });
+  };
+
+  const totalItems = list.items?.length || 0;
+  const completedItems = list.items?.filter(item => item.completed)?.length || 0;
+  const progressPercentage = totalItems === 0 ? 0 : (completedItems / totalItems) * 100;
+
+  // Calculamos el estado de forma síncrona aquí mismo, usando siempre la data más fresca
+  const status = getListStatus(list);
+
+  // Asignación estricta de colores
+  const progressBarColor = status === 'completada' ? 'bg-green-500' 
+                         : status === 'en progreso' ? 'bg-yellow-500' 
+                         : 'bg-gray-300';
+
+  const badgeStyles = status === 'completada' ? 'bg-green-100 text-green-800' 
+                    : status === 'en progreso' ? 'bg-yellow-100 text-yellow-800' 
+                    : 'bg-gray-100 text-gray-500';
+
+  return (
+    <div className="relative mb-3 rounded-2xl">
+      {/* Fondo rojo absoluto, ligeramente retraído (top/bottom de 1px) para evitar sangrado en las esquinas */}
+      <div className="absolute top-[1px] bottom-[1px] right-[1px] w-[80%] bg-red-500 rounded-2xl flex items-center justify-end pr-5 text-white -z-0">
+        <Trash2 size={24} />
+      </div>
+
+      {/* Tarjeta Deslizable */}
+      <motion.div
+        drag="x"
+        dragConstraints={{ left: -80, right: 0 }}
+        dragElastic={0.1}
+        onDragStart={() => { isDragging.current = true; }}
+        onDragEnd={handleDragEnd}
+        animate={controls}
+        initial={{ x: 0 }}
+        style={{ touchAction: "pan-y" }}
+        onClick={(e) => {
+          if (isDragging.current) {
+            e.preventDefault();
+            return;
+          }
+          onClick(list.id);
+        }}
+        className="relative z-10 w-full bg-white border border-gray-100 rounded-2xl p-4 shadow-sm flex items-center gap-3 cursor-pointer hover:border-gray-200 transition-colors select-none"
+      >
+        {/* Emoji */}
+        <div className="w-12 h-12 shrink-0 bg-slate-50 rounded-xl flex items-center justify-center text-3xl select-none">
+          {list.emoji}
+        </div>
+
+        {/* Detalles */}
+        <div className="flex-1 min-w-0 space-y-1.5">
+          {/* Título + badge */}
+          <div className="flex justify-between items-center w-full mb-1">
+            <h3 className="font-semibold text-slate-800 text-sm truncate leading-none pr-2">
+              {list.name}
+            </h3>
+            <span
+              className={`shrink-0 text-[10px] px-2 py-0.5 rounded-full font-medium uppercase tracking-wider ${badgeStyles}`}
+            >
+              {status === 'en progreso' ? 'En progreso' : status === 'completada' ? 'Completada' : 'Pendiente'}
+            </span>
+          </div>
+
+          <div className="space-y-2 mt-3">
+            {/* Barra de Progreso Dinámica */}
+            <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+              <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: `${progressPercentage}%` }}
+                transition={{ duration: 0.35, ease: 'easeOut' }}
+                className={`h-full rounded-full ${progressBarColor}`}
+              />
+            </div>
+
+            {/* Fila Inferior (Productos y Fecha) */}
+            <div className="flex items-center justify-between">
+              {/* Izquierda: Productos y Progreso */}
+              <span className="text-[11px] font-medium text-gray-400">
+                {completedItems} de {totalItems} productos ({Math.round(progressPercentage)}%)
+              </span>
+
+              {/* Derecha: Fecha (si existe) */}
+              {list.plannedDate && (
+                <div className="flex items-center gap-1.5 leading-none">
+                  <Calendar size={13} className="text-blue-400" />
+                  <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">
+                    {formatListDate(list.plannedDate)}
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Ícono de reordenar */}
+        <GripVertical size={16} className="shrink-0 text-gray-300" />
+      </motion.div>
+    </div>
+  );
+}
+
+// ─── Modal de confirmación de eliminación ─────────────────────────────────────
+function DeleteConfirmModal({ listName, onConfirm, onCancel }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.15 }}
+      className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-4"
+      onClick={onCancel} // toque fuera del modal = cancelar
+    >
+      <motion.div
+        initial={{ opacity: 0, y: 40, scale: 0.97 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: 30, scale: 0.97 }}
+        transition={{ type: 'spring', damping: 28, stiffness: 320 }}
+        onClick={(e) => e.stopPropagation()} // evitar cierre al tocar dentro
+        className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl"
+      >
+        {/* Icono de advertencia */}
+        <div className="flex justify-center mb-4">
+          <div className="w-14 h-14 bg-red-50 rounded-2xl flex items-center justify-center">
+            <AlertTriangle size={28} className="text-red-500" />
+          </div>
+        </div>
+
+        <h2 className="text-xl font-bold text-center text-gray-900 mb-2">
+          ¿Eliminar lista?
+        </h2>
+        <p className="text-gray-500 text-sm text-center mb-6 leading-relaxed">
+          Esta acción no se puede deshacer y perderás todos los productos guardados
+          {listName ? ` en "${listName}"` : ''}.
+        </p>
+
+        <div className="flex gap-3">
+          <button
+            onClick={onCancel}
+            className="bg-gray-100 text-gray-700 flex-1 rounded-xl py-3 font-medium text-sm transition-colors hover:bg-gray-200 active:scale-[0.98]"
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={onConfirm}
+            className="bg-red-500 hover:bg-red-600 active:bg-red-700 text-white flex-1 rounded-xl py-3 font-medium text-sm transition-colors active:scale-[0.98]"
+          >
+            Eliminar
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+// ─── Vista principal ───────────────────────────────────────────────────────────
+export function HomeView({ lists, loading, removeList, onSelectList, onCreateListClick, onReorder, activeFilter, setActiveFilter }) {
+  const [listToDelete, setListToDelete] = useState(null); // id de la lista pendiente de confirmar
+
+  // Sincronizar la lógica de filtrado con los nuevos textos plurales
+  const filteredLists = lists.filter(list => {
+    if (activeFilter === 'Todas') return true;
+    
+    const status = getListStatus(list);
+    
+    if (activeFilter === 'Pendientes' && status === 'pendiente') return true;
+    if (activeFilter === 'En progreso' && status === 'en progreso') return true;
+    if (activeFilter === 'Completadas' && status === 'completada') return true;
+    
+    return false;
+  });
+
+  // Nombre de la lista a eliminar (para mostrarlo en el modal)
+  const listToDeleteName = lists.find((l) => l.id === listToDelete)?.name ?? '';
+
+  // Confirmar eliminación
+  const handleConfirmDelete = async () => {
+    if (!listToDelete) return;
+    try {
+      await removeList(listToDelete);
+    } catch {
+      // El error lo maneja removeList; mantenemos la UX limpia
+    } finally {
+      setListToDelete(null);
+    }
+  };
+
+  // Manejo de reordenamiento de listas, soportando filtros activos
+  const handleReorder = (newFiltered) => {
+    if (activeFilter === 'Todas') {
+      onReorder(newFiltered);
+    } else {
+      const newLists = [...lists];
+      
+      // Encontramos los índices de los elementos que coinciden con el filtro
+      const indices = [];
+      lists.forEach((item, index) => {
+        const status = getListStatus(item);
+        if (
+          (activeFilter === 'Pendientes' && status === 'pendiente') ||
+          (activeFilter === 'En progreso' && status === 'en progreso') ||
+          (activeFilter === 'Completadas' && status === 'completada')
+        ) {
+          indices.push(index);
+        }
+      });
+      
+      // Reemplazamos en esos índices con el nuevo orden de los elementos filtrados
+      newFiltered.forEach((item, i) => {
+        newLists[indices[i]] = item;
+      });
+      
+      onReorder(newLists);
+    }
+  };
+
+
+
+  return (
+    <div className="flex flex-col h-full relative">
+
+      {/* Scrollbar vertical minimalista */}
+      <style>{`
+        .lists-scroll::-webkit-scrollbar { width: 4px; }
+        .lists-scroll::-webkit-scrollbar-track { background: transparent; }
+        .lists-scroll::-webkit-scrollbar-thumb { background-color: #e2e8f0; border-radius: 999px; }
+      `}</style>
+
+      {/* ── HEADER ── */}
+      <div className="shrink-0 px-4 pt-4 relative flex items-center justify-between pb-3 border-b border-gray-200 mb-3">
+        <span className="font-bold text-xl text-[#0f62fe]">ShopSync</span>
+
+        <span className="absolute left-1/2 -translate-x-1/2 text-lg font-semibold text-gray-800 pointer-events-none">
+          Mis listas
+        </span>
+
+        <span className="text-xs font-semibold text-slate-400 bg-slate-100 px-2.5 py-1 rounded-full">
+          {loading ? '–' : `${filteredLists.length} listas`}
+        </span>
+      </div>
+
+      {/* ── CHIPS DE FILTRO ── */}
+      <div className="shrink-0 flex mx-4 overflow-x-auto gap-2 pb-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+        {FILTERS.map((filter) => (
+          <button
+            key={filter}
+            onClick={() => setActiveFilter(filter)}
+            className={`shrink-0 px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
+              activeFilter === filter
+                ? 'bg-blue-100 text-[#0f62fe]'
+                : 'bg-gray-100 text-gray-600'
+            }`}
+          >
+            {filter}
+          </button>
+        ))}
+      </div>
+
+      {/* ── LISTADO CON SCROLL ── */}
+      {loading ? (
+        <div className="flex-1 overflow-y-auto lists-scroll px-4 pb-[140px]">
+          <div className="space-y-3 py-6">
+            {[1, 2, 3].map((n) => (
+              <div key={n} className="h-20 bg-slate-50 border border-slate-100 rounded-2xl animate-pulse" />
+            ))}
+          </div>
+        </div>
+      ) : filteredLists.length === 0 ? (
+        <div className="flex-1 overflow-y-auto lists-scroll px-4 pb-[140px]">
+          <div className="py-20 text-center flex flex-col items-center justify-center space-y-3">
+            <span className="text-5xl select-none">
+              {activeFilter === 'Todas' ? '📝' : '🔍'}
+            </span>
+            <p className="text-sm font-semibold text-slate-500">
+              {activeFilter === 'Todas'
+                ? '¿Qué compramos hoy?'
+                : `Sin listas "${activeFilter.toLowerCase()}"`}
+            </p>
+            <p className="text-xs text-slate-400">
+              {activeFilter === 'Todas'
+                ? 'Crea tu primera lista para comenzar.'
+                : 'Prueba con otro filtro.'}
+            </p>
+          </div>
+        </div>
+      ) : (
+        <Reorder.Group
+          axis="y"
+          values={filteredLists}
+          onReorder={handleReorder}
+          className="flex-1 overflow-y-auto lists-scroll px-4 pb-[140px]"
+        >
+          <AnimatePresence mode="popLayout">
+            {filteredLists.map((list) => {
+              return (
+                <Reorder.Item 
+                  key={`${activeFilter}-${list.id}`} 
+                  value={list} 
+                  id={list.id}
+                >
+                  <ListCard
+                    list={list}
+                    onClick={onSelectList}
+                    onSwipeDelete={setListToDelete}
+                  />
+                </Reorder.Item>
+              );
+            })}
+          </AnimatePresence>
+        </Reorder.Group>
+      )}
+
+      {/* ── CTA CON MÁSCARA DE DEGRADADO ── */}
+      <div className="absolute bottom-[70px] left-0 right-0 px-4 pb-4 pt-10 bg-gradient-to-t from-white via-white/90 to-transparent z-10">
+        <button
+          onClick={onCreateListClick}
+          className="w-full h-12 bg-[#0f62fe] hover:bg-[#0b51d4] active:bg-[#0943b1] text-white font-semibold text-sm rounded-2xl flex items-center justify-center space-x-2 shadow-lg shadow-blue-500/20 active:scale-[0.99] transition-all"
+        >
+          <Plus size={16} />
+          <span>Crear nueva lista</span>
+        </button>
+      </div>
+
+      {/* ── MODAL DE CONFIRMACIÓN ── */}
+      <AnimatePresence>
+        {listToDelete && (
+          <DeleteConfirmModal
+            listName={listToDeleteName}
+            onConfirm={handleConfirmDelete}
+            onCancel={() => setListToDelete(null)}
+          />
+        )}
+      </AnimatePresence>
+
+    </div>
+  );
+}
