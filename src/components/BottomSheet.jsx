@@ -27,7 +27,7 @@ export function BottomSheet({ isOpen, onClose, title, children }) {
             onClose();
           }
         }}
-        className="absolute bottom-0 left-0 right-0 bg-white rounded-t-[2rem] z-50 p-6 pb-8 border-t border-slate-100 shadow-2xl flex flex-col max-h-[85%] overflow-hidden"
+        className="absolute bottom-0 left-0 right-0 bg-white rounded-t-[2rem] z-50 p-6 pb-8 border-t border-slate-100 shadow-2xl flex flex-col max-h-[85dvh] overflow-y-auto overscroll-contain no-scrollbar"
       >
         {/* Manilla / Notch superior tipo iOS para arrastrar/visualizar */}
         <div className="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mb-6 shrink-0" />
@@ -38,10 +38,7 @@ export function BottomSheet({ isOpen, onClose, title, children }) {
           </h3>
         )}
 
-        {/* Contenido scrolleable si excede la altura */}
-        <div className="overflow-y-auto no-scrollbar flex-1 min-h-0">
-          {children}
-        </div>
+        {children}
       </motion.div>
     </>
   );
