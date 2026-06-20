@@ -8,7 +8,7 @@ import { ExploreDetailView } from './views/ExploreDetailView';
 import { BottomSheet } from './components/BottomSheet';
 import { BottomNavBar } from './components/BottomNavBar';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Plus, Smile } from 'lucide-react';
+import { Plus, Smile, Mic } from 'lucide-react';
 import { COMMON_PRODUCTS, formatQuantityText } from './utils/productDictionary';
 import EmojiPicker from 'emoji-picker-react';
 
@@ -102,6 +102,57 @@ function App() {
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
+
+  // Estados y lógica de dictado de voz para el BottomSheet
+  const [isListening, setIsListening] = useState(false);
+  const [autoStartVoice, setAutoStartVoice] = useState(false);
+
+  const toggleListening = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) return alert("Dictado no soportado en este navegador.");
+
+    if (isListening) {
+      // Dejar que termine solo o forzar detención (false parará solo)
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'es-ES';
+    recognition.continuous = false; // Solo una frase corta
+    recognition.interimResults = true; // Permite ver cómo se escribe en vivo
+
+    recognition.onstart = () => setIsListening(true);
+    
+    recognition.onresult = (event) => {
+      let interimTranscript = '';
+      for (let i = event.resultIndex; i < event.results.length; ++i) {
+        if (event.results[i].isFinal) {
+          // Al terminar la frase, actualizar el input final
+          setProductName(prev => prev ? `${prev} ${event.results[i].transcript}` : event.results[i].transcript);
+        } else {
+          interimTranscript += event.results[i].transcript;
+        }
+      }
+    };
+
+    recognition.onerror = () => setIsListening(false);
+    recognition.onend = () => {
+      setIsListening(false);
+      setAutoStartVoice(false);
+    };
+
+    try {
+      recognition.start();
+    } catch (e) {
+      console.warn("Error starting speech recognition", e);
+    }
+  };
+
+  useEffect(() => {
+    if (bottomSheet === 'addProduct' && autoStartVoice) {
+      toggleListening();
+    }
+  }, [bottomSheet, autoStartVoice]);
 
   // Hook para gestionar los items de la lista activa compartida entre la vista y el BottomSheet
   const activeListItemsState = useItems(selectedListId, refreshListStats);
@@ -268,7 +319,10 @@ function App() {
                   setCurrentView('home');
                   setSelectedListId(null);
                 }}
-                onAddProductClick={() => setBottomSheet('addProduct')}
+                onAddProductClick={(startVoice = false) => {
+                  setBottomSheet('addProduct');
+                  if (startVoice) setAutoStartVoice(true);
+                }}
                 itemsState={activeListItemsState}
                 onCompleteList={async () => {
                   try {
@@ -495,28 +549,39 @@ function App() {
                   <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block">
                     Nombre del producto
                   </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Ej. Manzanas, Leche, Detergente..."
-                    value={productName}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      setProductName(val);
-                      if (val.trim()) {
-                        const filtered = COMMON_PRODUCTS.filter(product =>
-                          product.toLowerCase().includes(val.toLowerCase())
-                        );
-                        setSuggestions(filtered);
-                        setShowSuggestions(filtered.length > 0);
-                      } else {
-                        setSuggestions([]);
-                        setShowSuggestions(false);
-                      }
-                    }}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-[#0f62fe] focus:bg-white placeholder-slate-400 transition-all font-semibold"
-                    autoFocus
-                  />
+                  <div className="relative">
+                    <input
+                      type="text"
+                      required
+                      placeholder="Ej. Manzanas, Leche, Detergente..."
+                      value={productName}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setProductName(val);
+                        if (val.trim()) {
+                          const filtered = COMMON_PRODUCTS.filter(product =>
+                            product.toLowerCase().includes(val.toLowerCase())
+                          );
+                          setSuggestions(filtered);
+                          setShowSuggestions(filtered.length > 0);
+                        } else {
+                          setSuggestions([]);
+                          setShowSuggestions(false);
+                        }
+                      }}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-[#0f62fe] focus:bg-white placeholder-slate-400 transition-all font-semibold pr-12"
+                      autoFocus
+                    />
+                    <button 
+                      type="button"
+                      onClick={toggleListening}
+                      className={`absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-lg transition-colors ${
+                        isListening ? 'text-red-500 bg-red-50 animate-pulse' : 'text-gray-400 hover:text-[#0f62fe] hover:bg-blue-50'
+                      }`}
+                    >
+                      <Mic size={18} />
+                    </button>
+                  </div>
                   {showSuggestions && suggestions.length > 0 && (
                     <div className="absolute z-50 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto mt-1 left-0">
                       {suggestions.map((suggestion, index) => (
