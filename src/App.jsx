@@ -3,6 +3,7 @@ import { useLists } from './hooks/useLists';
 import { useItems } from './hooks/useItems';
 import { HomeView } from './views/HomeView';
 import { ActiveListView } from './views/ActiveListView';
+import { ExploreView } from './views/ExploreView';
 import { BottomSheet } from './components/BottomSheet';
 import { BottomNavBar } from './components/BottomNavBar';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -265,6 +266,8 @@ function App() {
                 onEditList={setListToEdit}
               />
             )
+          ) : currentTab === 'explore' ? (
+            <ExploreView />
           ) : (
             <div className="flex-1 flex items-center justify-center text-gray-500 font-semibold select-none">
               Próximamente...
