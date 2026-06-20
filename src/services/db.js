@@ -236,4 +236,26 @@ export const db = {
       listId: data.list_id,
     };
   },
+
+  // Agrega múltiples ítems a una lista en lote (batch)
+  addItems: async (listId, items) => {
+    const { data, error } = await supabase
+      .from('items')
+      .insert(
+        items.map(item => ({
+          list_id: listId,
+          name: item.name,
+          quantity: item.quantity || '',
+          completed: false
+        }))
+      )
+      .select();
+
+    if (error) throw error;
+
+    return (data || []).map(item => ({
+      ...item,
+      listId: item.list_id
+    }));
+  },
 };

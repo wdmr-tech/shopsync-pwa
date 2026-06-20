@@ -3,7 +3,7 @@ import { Search } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { COMMUNITY_CATEGORIES, COMMUNITY_LISTS } from '../utils/communityLists';
 
-export function ExploreView() {
+export function ExploreView({ onSelectTemplate }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState('Todas');
 
@@ -27,10 +27,10 @@ export function ExploreView() {
       `}</style>
 
       {/* ── HEADER ── */}
-      <div className="shrink-0 px-4 pt-4 relative flex items-center justify-between pb-3 border-b border-gray-200 mb-3">
+      <div className="shrink-0 px-4 pt-4 flex items-center justify-between pb-3 border-b border-gray-200 mb-3">
         <span className="font-bold text-xl text-[#0f62fe]">ShopSync</span>
-        <span className="absolute left-1/2 -translate-x-1/2 text-lg font-semibold text-gray-800 pointer-events-none">
-          Explorar Plantillas
+        <span className="text-lg font-bold text-gray-800">
+          Explorar
         </span>
       </div>
 
@@ -96,7 +96,8 @@ export function ExploreView() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -8 }}
                   transition={{ duration: 0.2, ease: "easeOut" }}
-                  className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm flex items-start gap-3 hover:border-gray-200 transition-colors select-none"
+                  onClick={() => onSelectTemplate(list)}
+                  className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm flex items-start gap-3 hover:border-gray-200 transition-colors select-none cursor-pointer active:scale-[0.99]"
                 >
                   {/* Emoji */}
                   <div className="w-12 h-12 shrink-0 bg-slate-50 rounded-xl flex items-center justify-center text-3xl select-none">

@@ -4,6 +4,7 @@ import { useItems } from './hooks/useItems';
 import { HomeView } from './views/HomeView';
 import { ActiveListView } from './views/ActiveListView';
 import { ExploreView } from './views/ExploreView';
+import { ExploreDetailView } from './views/ExploreDetailView';
 import { BottomSheet } from './components/BottomSheet';
 import { BottomNavBar } from './components/BottomNavBar';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -60,6 +61,7 @@ function App() {
   const [selectedListId, setSelectedListId] = useState(null);
   const [bottomSheet, setBottomSheet] = useState(null); // null | 'addProduct'
   const [listToEdit, setListToEdit] = useState(null); // null | list object
+  const [selectedTemplate, setSelectedTemplate] = useState(null); // null | template object
 
   // Estado del Splash Screen
   const [showSplash, setShowSplash] = useState(true);
@@ -145,11 +147,14 @@ function App() {
         });
         setListToEdit(null);
       } else {
-        const newList = await addList(newListName.trim(), newListEmoji, listDate);
+        const templateItems = listToEdit?.templateItems || [];
+        const newList = await addList(newListName.trim(), newListEmoji, listDate, templateItems);
         setListToEdit(null);
+        setSelectedTemplate(null); // Cerrar el detalle de la plantilla si estaba abierto
         // Excelente UX: Navega directamente a la lista recién creada
         setSelectedListId(newList.id);
         setCurrentView('activeList');
+        setCurrentTab('lists'); // Redirige a la pestaña principal de listas
       }
       setNewListName('');
       setNewListEmoji('🛒');
@@ -267,7 +272,25 @@ function App() {
               />
             )
           ) : currentTab === 'explore' ? (
-            <ExploreView />
+            selectedTemplate ? (
+              <ExploreDetailView
+                template={selectedTemplate}
+                onBack={() => setSelectedTemplate(null)}
+                onUseTemplate={(template) => {
+                  setListToEdit({
+                    name: template.name,
+                    emoji: template.emoji,
+                    plannedDate: '',
+                    templateItems: template.items.map(item => ({
+                      name: item.name,
+                      quantity: formatQuantityText(item.quantity, item.unit)
+                    }))
+                  });
+                }}
+              />
+            ) : (
+              <ExploreView onSelectTemplate={setSelectedTemplate} />
+            )
           ) : (
             <div className="flex-1 flex items-center justify-center text-gray-500 font-semibold select-none">
               Próximamente...
@@ -276,7 +299,7 @@ function App() {
         </div>
 
         {/* Bottom NavBar Global */}
-        {currentView !== 'activeList' && (
+        {currentView !== 'activeList' && !selectedTemplate && (
           <BottomNavBar currentTab={currentTab} setCurrentTab={setCurrentTab} />
         )}
 

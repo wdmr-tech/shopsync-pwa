@@ -22,14 +22,24 @@ export function useLists() {
   }, []);
 
   // Agregar una lista
-  const addList = useCallback(async (name, emoji, plannedDate = '') => {
+  const addList = useCallback(async (name, emoji, plannedDate = '', templateItems = []) => {
     try {
       const newList = await db.createList(name, emoji, plannedDate);
-      // Nueva lista: 0 ítems → stats iniciales en Pendiente
+      
+      let items = [];
+      if (templateItems && templateItems.length > 0) {
+        items = await db.addItems(newList.id, templateItems);
+      }
+
+      const total = items.length;
+      const completed = 0;
+      const percentage = 0;
+      const status = 'Pendiente';
+
       const enriched = {
         ...newList,
-        items: [],
-        stats: { total: 0, completed: 0, percentage: 0, status: 'Pendiente' },
+        items,
+        stats: { total, completed, percentage, status },
       };
       setLists((prev) => [enriched, ...prev]);
       return newList;
