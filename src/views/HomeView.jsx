@@ -201,6 +201,19 @@ function DeleteConfirmModal({ listName, onConfirm, onCancel }) {
 // ─── Vista principal ───────────────────────────────────────────────────────────
 export function HomeView({ lists, loading, removeList, onSelectList, onCreateListClick, onReorder, activeFilter, setActiveFilter }) {
   const [listToDelete, setListToDelete] = useState(null); // id de la lista pendiente de confirmar
+  const touchStartX = useRef(null);
+  const touchEndX = useRef(null);
+  const filterRefs = useRef({});
+
+  useEffect(() => {
+    if (filterRefs.current[activeFilter]) {
+      filterRefs.current[activeFilter].scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest',
+        inline: 'center'
+      });
+    }
+  }, [activeFilter]);
 
   // Sincronizar la lógica de filtrado con los nuevos textos plurales
   const filteredLists = lists.filter(list => {
@@ -278,82 +291,139 @@ export function HomeView({ lists, loading, removeList, onSelectList, onCreateLis
         <span className="absolute left-1/2 -translate-x-1/2 text-lg font-semibold text-gray-800 pointer-events-none">
           Mis listas
         </span>
-
-        <span className="text-xs font-semibold text-slate-400 bg-slate-100 px-2.5 py-1 rounded-full">
-          {loading ? '–' : `${filteredLists.length} listas`}
-        </span>
       </div>
 
       {/* ── CHIPS DE FILTRO ── */}
       <div className="shrink-0 flex mx-4 overflow-x-auto gap-2 pb-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-        {FILTERS.map((filter) => (
-          <button
-            key={filter}
-            onClick={() => setActiveFilter(filter)}
-            className={`shrink-0 px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
-              activeFilter === filter
-                ? 'bg-blue-100 text-[#0f62fe]'
-                : 'bg-gray-100 text-gray-600'
-            }`}
-          >
-            {filter}
-          </button>
-        ))}
+        {FILTERS.map((filter) => {
+          const getCountForTab = (tabName) => {
+            if (tabName === 'Todas') return lists.length;
+            return lists.filter(list => {
+              const status = getListStatus(list);
+              return (tabName === 'Pendientes' && status === 'pendiente') ||
+                     (tabName === 'En progreso' && status === 'en progreso') ||
+                     (tabName === 'Completadas' && status === 'completada');
+            }).length;
+          };
+
+          return (
+            <button
+              ref={(el) => { filterRefs.current[filter] = el; }}
+              key={filter}
+              onClick={() => setActiveFilter(filter)}
+              className={`shrink-0 px-4 py-2 rounded-full text-xs font-medium whitespace-nowrap transition-colors flex items-center justify-center ${
+                activeFilter === filter
+                  ? 'bg-blue-100 text-[#0f62fe]'
+                  : 'bg-gray-100 text-gray-600'
+              }`}
+            >
+              <span>{filter}</span>
+              <span className={`ml-2 w-5 h-5 flex items-center justify-center rounded-full text-[10px] font-bold transition-colors ${
+                activeFilter === filter
+                  ? 'bg-[#0f62fe]/10 text-[#0f62fe]'
+                  : 'bg-gray-200 text-gray-500'
+              }`}>
+                {getCountForTab(filter)}
+              </span>
+            </button>
+          );
+        })}
       </div>
 
-      {/* ── LISTADO CON SCROLL ── */}
-      {loading ? (
-        <div className="flex-1 overflow-y-auto lists-scroll px-4 pb-[140px]">
-          <div className="space-y-3 py-6">
-            {[1, 2, 3].map((n) => (
-              <div key={n} className="h-20 bg-slate-50 border border-slate-100 rounded-2xl animate-pulse" />
-            ))}
+      {/* ── LISTADO CON SCROLL Y SWIPE HORIZONTAL DE PESTAÑAS ── */}
+      <div 
+        className="flex-1 min-h-0 flex flex-col"
+        onTouchStart={(e) => {
+          touchEndX.current = null;
+          touchStartX.current = e.targetTouches[0].clientX;
+        }}
+        onTouchMove={(e) => {
+          touchEndX.current = e.targetTouches[0].clientX;
+        }}
+        onTouchEnd={() => {
+          if (!touchStartX.current || !touchEndX.current) return;
+          
+          const distance = touchStartX.current - touchEndX.current;
+          const isLeftSwipe = distance > 50; // Deslizar hacia la izquierda (Siguiente tab)
+          const isRightSwipe = distance < -50; // Deslizar hacia la derecha (Tab anterior)
+
+          if (isLeftSwipe || isRightSwipe) {
+            const currentIndex = FILTERS.indexOf(activeFilter);
+            let newIndex = currentIndex;
+
+            if (isLeftSwipe && currentIndex < FILTERS.length - 1) {
+              newIndex = currentIndex + 1;
+            } else if (isRightSwipe && currentIndex > 0) {
+              newIndex = currentIndex - 1;
+            }
+
+            if (newIndex !== currentIndex) {
+              setActiveFilter(FILTERS[newIndex]);
+            }
+          }
+        }}
+      >
+        {loading ? (
+          <div className="flex-1 overflow-y-auto lists-scroll px-4 pb-[140px]">
+            <div className="space-y-3 py-6">
+              {[1, 2, 3].map((n) => (
+                <div key={n} className="h-20 bg-slate-50 border border-slate-100 rounded-2xl animate-pulse" />
+              ))}
+            </div>
           </div>
-        </div>
-      ) : filteredLists.length === 0 ? (
-        <div className="flex-1 overflow-y-auto lists-scroll px-4 pb-[140px]">
-          <div className="py-20 text-center flex flex-col items-center justify-center space-y-3">
-            <span className="text-5xl select-none">
-              {activeFilter === 'Todas' ? '📝' : '🔍'}
-            </span>
-            <p className="text-sm font-semibold text-slate-500">
-              {activeFilter === 'Todas'
-                ? '¿Qué compramos hoy?'
-                : `Sin listas "${activeFilter.toLowerCase()}"`}
-            </p>
-            <p className="text-xs text-slate-400">
-              {activeFilter === 'Todas'
-                ? 'Crea tu primera lista para comenzar.'
-                : 'Prueba con otro filtro.'}
-            </p>
+        ) : filteredLists.length === 0 ? (
+          <div className="flex-1 overflow-y-auto lists-scroll px-4 pb-[140px]">
+            <div className="py-20 text-center flex flex-col items-center justify-center space-y-3">
+              <span className="text-5xl select-none">
+                {activeFilter === 'Todas' ? '📝' : '🔍'}
+              </span>
+              <p className="text-sm font-semibold text-slate-500">
+                {activeFilter === 'Todas'
+                  ? '¿Qué compramos hoy?'
+                  : `Sin listas "${activeFilter.toLowerCase()}"`}
+              </p>
+              <p className="text-xs text-slate-400">
+                {activeFilter === 'Todas'
+                  ? 'Crea tu primera lista para comenzar.'
+                  : 'Prueba con otro filtro.'}
+              </p>
+            </div>
           </div>
-        </div>
-      ) : (
-        <Reorder.Group
-          axis="y"
-          values={filteredLists}
-          onReorder={handleReorder}
-          className="flex-1 overflow-y-auto lists-scroll px-4 pb-[140px]"
-        >
-          <AnimatePresence mode="popLayout">
-            {filteredLists.map((list) => {
-              return (
-                <Reorder.Item 
-                  key={`${activeFilter}-${list.id}`} 
-                  value={list} 
-                  id={list.id}
-                >
-                  <ListCard
-                    list={list}
-                    onClick={onSelectList}
-                    onSwipeDelete={setListToDelete}
-                  />
-                </Reorder.Item>
-              );
-            })}
-          </AnimatePresence>
-        </Reorder.Group>
-      )}
+        ) : (
+          <Reorder.Group
+            axis="y"
+            values={filteredLists}
+            onReorder={handleReorder}
+            className="flex-1 overflow-y-auto lists-scroll px-4 pb-[140px]"
+          >
+            <AnimatePresence mode="popLayout">
+              {filteredLists.map((list) => {
+                return (
+                  <Reorder.Item 
+                    key={`${activeFilter}-${list.id}`} 
+                    value={list} 
+                    id={list.id}
+                    layout
+                    initial={{ opacity: 0, x: 8 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -8 }}
+                    transition={{ 
+                      duration: 0.2,
+                      ease: "easeOut"
+                    }}
+                  >
+                    <ListCard
+                      list={list}
+                      onClick={onSelectList}
+                      onSwipeDelete={setListToDelete}
+                    />
+                  </Reorder.Item>
+                );
+              })}
+            </AnimatePresence>
+          </Reorder.Group>
+        )}
+      </div>
 
       {/* ── CTA CON MÁSCARA DE DEGRADADO ── */}
       <div className="absolute bottom-[70px] left-0 right-0 px-4 pb-4 pt-10 bg-gradient-to-t from-white via-white/90 to-transparent z-10">

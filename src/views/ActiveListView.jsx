@@ -7,7 +7,8 @@ import {
   CheckCircle2,
   ShoppingBag,
   Calendar,
-  Edit2
+  Edit2,
+  ArrowRight
 } from 'lucide-react';
 import { motion, AnimatePresence, useAnimation } from 'framer-motion';
 import { getCategoryForProduct, formatListDate, getListStatus } from '../utils/productDictionary';
@@ -91,7 +92,7 @@ const ItemCard = ({ item, toggleItem, setItemToDelete, setItemToEdit }) => {
   );
 };
 
-export function ActiveListView({ list, onBack, onAddProductClick, itemsState, onCompleteList, updateList, setActiveTab, setItemToEdit }) {
+export function ActiveListView({ list, onBack, onAddProductClick, itemsState, onCompleteList, updateList, setActiveTab, setItemToEdit, onEditList }) {
   const {
     items,
     allItems,
@@ -120,6 +121,24 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
 
 
   const dateInputRef = useRef(null);
+  const touchStartX = useRef(null);
+  const touchEndX = useRef(null);
+
+  const [isExiting, setIsExiting] = useState(false);
+  const [showSwipeHint, setShowSwipeHint] = useState(false);
+
+  useEffect(() => {
+    const hasSeenHint = localStorage.getItem('hasSeenSwipeHint');
+    if (!hasSeenHint) {
+      setShowSwipeHint(true);
+      // Ocultar la pista automáticamente después de 4 segundos
+      const timer = setTimeout(() => {
+        setShowSwipeHint(false);
+        localStorage.setItem('hasSeenSwipeHint', 'true');
+      }, 4000);
+      return () => clearTimeout(timer);
+    }
+  }, []);
 
   const totalItems = items?.length || 0;
   const completedItems = items?.filter(item => item.completed)?.length || 0;
@@ -191,11 +210,62 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
   });
 
   return (
-    <div className="flex flex-col h-full relative">
+    <div 
+      className={`h-full w-full bg-white flex flex-col relative overflow-hidden transition-opacity duration-300 ${isExiting ? 'opacity-0' : 'opacity-100'}`}
+      onTouchStart={(e) => {
+        touchEndX.current = null;
+        touchStartX.current = e.targetTouches[0].clientX;
+      }}
+      onTouchMove={(e) => {
+        touchEndX.current = e.targetTouches[0].clientX;
+      }}
+      onTouchEnd={() => {
+        if (!touchStartX.current || !touchEndX.current) return;
+        
+        const distance = touchEndX.current - touchStartX.current;
+        const isRightSwipe = distance > 100; // Umbral de 100px para volver atrás
+
+        if (isRightSwipe) {
+          setIsExiting(true);
+          setTimeout(() => {
+            try {
+              if (typeof setActiveTab === 'function') {
+                const currentStatus = getListStatus({ ...list, items: items });
+                const tabToSelect = currentStatus === 'en progreso' ? 'En progreso' 
+                                  : currentStatus === 'completada' ? 'Completadas' 
+                                  : 'Pendientes';
+                setActiveTab(tabToSelect);
+              }
+              if (typeof onBack === 'function') onBack();
+            } catch (err) {
+              if (typeof onBack === 'function') onBack();
+            }
+          }, 250);
+        }
+      }}
+    >
+      <AnimatePresence>
+        {showSwipeHint && (
+          <motion.div 
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0 }}
+            className="absolute top-1/3 left-4 z-50 bg-black/70 text-white px-4 py-2 rounded-full flex items-center gap-2 pointer-events-none"
+          >
+            <motion.div
+              animate={{ x: [0, 8, 0] }}
+              transition={{ repeat: Infinity, duration: 1.5 }}
+            >
+              <ArrowRight size={16} />
+            </motion.div>
+            <span className="text-xs font-medium">Desliza para volver</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
       
-      {/* Cabecera Móvil */}
+      {/* Cabecera Móvil (Estática) */}
       <header className="px-5 py-4 border-b border-slate-100 bg-white flex items-center justify-between shrink-0">
-        <div className="flex items-center space-x-3 min-w-0">
+        <div className="flex items-center space-x-3 min-w-0 w-full">
           {/* Botón Retroceso */}
           <button 
             onClick={() => {
@@ -220,33 +290,24 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
                 if (typeof onBack === 'function') onBack();
               }
             }}
-            className="p-2 -ml-2 text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+            className="p-2 -ml-2 text-gray-600 hover:bg-gray-100 rounded-full transition-colors shrink-0"
             aria-label="Volver al inicio"
           >
             <ChevronLeft size={24} />
           </button>
           
-          {/* Emoji y Título */}
-          <div className="flex items-center space-x-2 min-w-0">
-            <span className="text-2xl shrink-0 select-none">{list?.emoji}</span>
-            <h2 className="font-bold text-base truncate leading-none text-slate-800">
-              {list?.name}
-            </h2>
-          </div>
-        </div>
-
-        {/* Botón de finalización manual */}
-        {!isListCompleted && totalItems > 0 && (
+          {/* Emoji y Título clickable para edición */}
           <button
-            type="button"
-            onClick={handleManualCompleteClick}
-            className="text-[#0f62fe] font-semibold text-sm tracking-wide active:opacity-70 flex items-center gap-1.5 p-2 transition-opacity"
-            aria-label="Completar lista"
+            onClick={() => onEditList && onEditList(list)}
+            className="flex items-center space-x-2 min-w-0 hover:opacity-85 active:opacity-70 transition-opacity text-left cursor-pointer"
           >
-            <CheckCircle2 size={18} />
-            <span>Completar</span>
+            <span className="text-2xl shrink-0 select-none">{list?.emoji}</span>
+            <span className="font-bold text-base truncate leading-none text-slate-800 flex items-center gap-1.5 min-w-0">
+              <span className="truncate">{list?.name}</span>
+              <Edit2 size={14} className="text-gray-400 shrink-0" />
+            </span>
           </button>
-        )}
+        </div>
       </header>
 
       {/* Barra de progreso y estado */}
@@ -272,23 +333,41 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
           />
         </div>
 
-        {/* Fila de Fecha Editable (Solo si existe la fecha planificada) */}
-        {(list?.plannedDate || list?.date) && (
-          <div className="flex justify-end mt-3">
-            <button 
-              type="button"
-              onClick={() => {
-                setTempDate(list?.plannedDate || list?.date || ''); // Carga la fecha actual en el estado temporal
-                setShowDateModal(true);
-              }}
-              className="flex items-center gap-1.5 leading-none bg-blue-50/50 px-3 py-2 rounded-md cursor-pointer hover:bg-blue-50 active:bg-blue-100 transition-colors"
-            >
-              <Calendar size={13} className="text-blue-400" />
-              <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">
-                {formatListDate(list?.plannedDate || list?.date)}
-              </span>
-              <Edit2 size={10} className="text-gray-400 ml-1" />
-            </button>
+        {/* Debajo de la barra de progreso */}
+        {(!isListCompleted || list?.plannedDate || list?.date) && (
+          <div className="flex items-center justify-between mt-3">
+            {/* Izquierda: Botón Completar */}
+            <div>
+              {!isListCompleted && (
+                <button 
+                  onClick={() => { setModalType('manual'); setShowCompleteModal(true); }}
+                  className="text-[#0f62fe] font-semibold text-sm tracking-wide active:opacity-70 flex items-center gap-1.5 py-1"
+                >
+                  <CheckCircle2 size={16} />
+                  Completar
+                </button>
+              )}
+            </div>
+            
+            {/* Derecha: Fecha de Compra (tu código actual del botón de fecha) */}
+            <div>
+              {(list?.plannedDate || list?.date) && (
+                <button 
+                  type="button"
+                  onClick={() => {
+                    setTempDate(list?.plannedDate || list?.date || ''); // Carga la fecha actual en el estado temporal
+                    setShowDateModal(true);
+                  }}
+                  className="flex items-center gap-1.5 leading-none bg-blue-50/50 px-3 py-2 rounded-md cursor-pointer hover:bg-blue-50 active:bg-blue-100 transition-colors"
+                >
+                  <Calendar size={13} className="text-blue-400" />
+                  <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">
+                    {formatListDate(list?.plannedDate || list?.date)}
+                  </span>
+                  <Edit2 size={10} className="text-gray-400 ml-1" />
+                </button>
+              )}
+            </div>
           </div>
         )}
       </div>

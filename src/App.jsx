@@ -57,7 +57,8 @@ function App() {
   const [currentTab, setCurrentTab] = useState('lists'); // 'lists' | 'explore' | 'history' | 'settings'
   const [currentView, setCurrentView] = useState('home'); // 'home' | 'activeList'
   const [selectedListId, setSelectedListId] = useState(null);
-  const [bottomSheet, setBottomSheet] = useState(null); // null | 'newList' | 'addProduct'
+  const [bottomSheet, setBottomSheet] = useState(null); // null | 'addProduct'
+  const [listToEdit, setListToEdit] = useState(null); // null | list object
 
   // Estado del Splash Screen
   const [showSplash, setShowSplash] = useState(true);
@@ -70,6 +71,19 @@ function App() {
   const [newListEmoji, setNewListEmoji] = useState('🛒');
   const [listDate, setListDate] = useState('');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+
+  // Sincronizar estados del formulario al seleccionar una lista para editar o crear
+  useEffect(() => {
+    if (listToEdit && listToEdit.id) {
+      setNewListName(listToEdit.name || '');
+      setNewListEmoji(listToEdit.emoji || '🛒');
+      setListDate(listToEdit.plannedDate || listToEdit.date || '');
+    } else {
+      setNewListName('');
+      setNewListEmoji('🛒');
+      setListDate('');
+    }
+  }, [listToEdit]);
   
   // Formulario de creación de ítems y estado de revelar campos opcionales
   const [productName, setProductName] = useState('');
@@ -117,23 +131,31 @@ function App() {
   // Selección automática de la lista activa
   const activeList = lists.find((l) => l.id === selectedListId);
 
-  // Manejo de la acción guardar lista en BottomSheet
-  const handleCreateList = async (e) => {
+  // Manejo de la acción guardar lista (crear o editar) en BottomSheet
+  const handleSaveList = async (e) => {
     e.preventDefault();
     if (!newListName.trim()) return;
     try {
-      const newList = await addList(newListName.trim(), newListEmoji, listDate);
+      if (listToEdit && listToEdit.id) {
+        await updateList(listToEdit.id, {
+          name: newListName.trim(),
+          emoji: newListEmoji,
+          plannedDate: listDate
+        });
+        setListToEdit(null);
+      } else {
+        const newList = await addList(newListName.trim(), newListEmoji, listDate);
+        setListToEdit(null);
+        // Excelente UX: Navega directamente a la lista recién creada
+        setSelectedListId(newList.id);
+        setCurrentView('activeList');
+      }
       setNewListName('');
       setNewListEmoji('🛒');
       setListDate('');
       setShowEmojiPicker(false);
-      setBottomSheet(null);
-      
-      // Excelente UX: Navega directamente a la lista recién creada
-      setSelectedListId(newList.id);
-      setCurrentView('activeList');
     } catch (err) {
-      alert('Error al crear la lista');
+      alert(listToEdit && listToEdit.id ? 'Error al editar la lista' : 'Error al crear la lista');
     }
   };
 
@@ -216,7 +238,7 @@ function App() {
                   setSelectedListId(id);
                   setCurrentView('activeList');
                 }}
-                onCreateListClick={() => setBottomSheet('newList')}
+                onCreateListClick={() => setListToEdit({ name: '', emoji: '🛒', plannedDate: '' })}
                 onReorder={reorderLists}
                 activeFilter={activeFilter}
                 setActiveFilter={setActiveFilter}
@@ -240,6 +262,7 @@ function App() {
                 updateList={updateList}
                 setActiveTab={setActiveFilter}
                 setItemToEdit={setEditingItem}
+                onEditList={setListToEdit}
               />
             )
           ) : (
@@ -258,19 +281,19 @@ function App() {
         <AnimatePresence>
           
           {/* BottomSheet: Nueva Lista */}
-          {bottomSheet === 'newList' && (
+          {listToEdit !== null && (
             <BottomSheet
               isOpen={true}
               onClose={() => {
-                setBottomSheet(null);
+                setListToEdit(null);
                 setNewListName('');
                 setNewListEmoji('🛒');
                 setListDate('');
                 setShowEmojiPicker(false);
               }}
-              title="Crear Nueva Lista"
+              title={listToEdit.id ? "Editar Lista" : "Crear Nueva Lista"}
             >
-              <form onSubmit={handleCreateList} className="space-y-4 px-1 pt-1 pb-4">
+              <form onSubmit={handleSaveList} className="space-y-4 px-1 pt-1 pb-4">
                 {/* 1. Nombre de la lista */}
                 <div className="space-y-1.5 mb-5">
                   <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block">
