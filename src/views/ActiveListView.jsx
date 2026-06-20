@@ -119,46 +119,74 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
 
   const processVoiceInput = async (spokenText) => {
     if (!spokenText || !spokenText.trim()) return;
-    
-    // Dividir por "y", "e", comas o puntos
-    const rawItems = spokenText.toLowerCase().split(/ y |,| e |\./g).map(i => i.trim()).filter(i => i.length > 1);
 
+    // 1. Limpieza inicial: Convertir todo a minúsculas y quitar comas sueltas
+    const cleanText = spokenText.toLowerCase().replace(/,/g, ' ');
+
+    // 2. Separar por palabras clave comunes ("y", "además", "también")
+    const splitByConjunctions = cleanText.split(/\by\b|\bademás\b|\btambién\b/);
+
+    // 3. Separar aún más. Si el usuario dictó palabras sueltas sin pausas (ej. "carpa gorro mochila")
+    // vamos a asumir que cada palabra que NO es una unidad ni número es un producto distinto.
+    const rawItems = [];
+    const knownUnits = ['kilo', 'kilos', 'kg', 'litro', 'litros', 'lt', 'gramo', 'gramos', 'gr', 'caja', 'cajas', 'paquete', 'paquetes', 'bolsa', 'bolsas', 'unidad', 'unidades', 'lata', 'latas', 'botella', 'botellas', 'docena', 'docenas', 'pack', 'packs'];
     const numberWords = { 'un': 1, 'una': 1, 'uno': 1, 'dos': 2, 'tres': 3, 'cuatro': 4, 'cinco': 5, 'seis': 6, 'siete': 7, 'ocho': 8, 'nueve': 9, 'diez': 10 };
-    const knownUnits = ['kilo', 'kilos', 'kg', 'litro', 'litros', 'lt', 'gramo', 'gramos', 'gr', 'caja', 'cajas', 'paquete', 'paquetes', 'bolsa', 'bolsas', 'unidad', 'unidades', 'lata', 'latas', 'botella', 'botellas', 'docena', 'docenas'];
 
-    for (const rawItem of rawItems) {
-      const words = rawItem.split(' ');
-      let quantity = '';
-      let unit = '';
-      let nameWords = [...words];
-
-      // Detectar si la primera palabra es un número
-      const firstWord = words[0];
-      const parsedNum = !isNaN(firstWord) ? parseFloat(firstWord) : numberWords[firstWord];
+    for (const chunk of splitByConjunctions) {
+      const words = chunk.trim().split(/\s+/).filter(w => w);
       
-      if (parsedNum !== undefined) {
-        quantity = parsedNum;
-        nameWords = words.slice(1);
+      let currentItemName = [];
+      let currentQuantity = '';
+      let currentUnit = '';
+
+      for (let i = 0; i < words.length; i++) {
+        const word = words[i];
+        const parsedNum = !isNaN(word) ? parseFloat(word) : numberWords[word];
         
-        // Detectar si la segunda palabra es una unidad
-        const secondWord = nameWords[0] || '';
-        if (knownUnits.includes(secondWord)) {
-          unit = secondWord;
-          nameWords = nameWords.slice(1);
-          
-          // Quitar "de" (ej. "kilo de pan" -> "pan")
-          if (nameWords[0] === 'de' || nameWords[0] === 'del') {
-            nameWords = nameWords.slice(1);
-          }
+        // Si la palabra es un número
+        if (parsedNum !== undefined) {
+           // Si ya teníamos un nombre en curso, lo guardamos antes de empezar uno nuevo
+           if (currentItemName.length > 0) {
+             rawItems.push({ name: currentItemName.join(' '), quantity: currentQuantity, unit: currentUnit });
+             currentItemName = [];
+             currentQuantity = '';
+             currentUnit = '';
+           }
+           currentQuantity = parsedNum;
+        } 
+        // Si la palabra es una unidad y justo la anterior era un número
+        else if (knownUnits.includes(word) && currentQuantity !== '') {
+           currentUnit = word;
+        }
+        // Ignorar conectores tontos
+        else if (['de', 'del'].includes(word) && currentQuantity !== '' && currentItemName.length === 0) {
+          continue;
+        }
+        // Es parte del nombre del producto
+        else {
+           // Si no venimos de un número y ya tenemos un nombre de 1 o más palabras
+           // y el usuario dijo "carpa gorro" (dos nombres sueltos). 
+           // Para este parser básico, asumiremos que "carpa térmica" es un producto, 
+           // pero dejaremos que el usuario decida si lo edita.
+           currentItemName.push(word);
         }
       }
+      
+      // Guardar el último ítem procesado en este chunk
+      if (currentItemName.length > 0) {
+        rawItems.push({ name: currentItemName.join(' '), quantity: currentQuantity, unit: currentUnit });
+      }
+    }
 
-      const name = nameWords.join(' ').trim();
-      if (!name) continue;
-
-      // Guardar en BD usando tu función compartida (asumiendo itemsState.createItem)
-      const quantityString = formatQuantityText(quantity, unit); // Usa tu formateador importado
-      await itemsState.createItem(name, quantityString);
+    // 4. Crear los ítems con mayúscula inicial
+    for (const item of rawItems) {
+      if (!item.name) continue;
+      
+      // Capitalizar la primera letra
+      const capitalizedName = item.name.charAt(0).toUpperCase() + item.name.slice(1);
+      const quantityString = formatQuantityText(item.quantity, item.unit);
+      
+      await itemsState.createItem(capitalizedName, quantityString);
     }
   };
 
@@ -172,16 +200,24 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
     recognition.interimResults = true; // Feedback visual
 
     recognition.onresult = (event) => {
-      let interimTranscript = '';
+      let finalChunk = '';
+      let interimChunk = '';
+
       for (let i = event.resultIndex; i < event.results.length; ++i) {
         if (event.results[i].isFinal) {
-          // MUY IMPORTANTE: Usar evento.results[i][0].transcript y acumularlo
-          finalTranscriptRef.current += event.results[i][0].transcript + ' ';
+          finalChunk += event.results[i][0].transcript + ' ';
         } else {
-          interimTranscript += event.results[i][0].transcript;
+          interimChunk += event.results[i][0].transcript;
         }
       }
-      setTranscript(finalTranscriptRef.current + interimTranscript);
+
+      // Solo guardamos en la referencia lo que está 100% confirmado (isFinal)
+      if (finalChunk) {
+        finalTranscriptRef.current += finalChunk;
+      }
+      
+      // Para la UI, mostramos lo confirmado + el borrador actual (interim)
+      setTranscript(finalTranscriptRef.current + interimChunk);
     };
 
     recognition.onerror = (e) => {
