@@ -359,6 +359,11 @@ export function HomeView({ lists, loading, removeList, onSelectList, onCreateLis
 
             if (newIndex !== currentIndex) {
               setActiveFilter(FILTERS[newIndex]);
+
+              // Activar Haptic Feedback (Vibración súper corta de 30ms para que se sienta como un 'clic')
+              if (navigator.vibrate) {
+                navigator.vibrate(30);
+              }
             }
           }
         }}
