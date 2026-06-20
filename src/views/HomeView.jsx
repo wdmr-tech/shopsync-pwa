@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Plus, GripVertical, Trash2, AlertTriangle, Calendar } from 'lucide-react';
 import { motion, AnimatePresence, useAnimation, Reorder } from 'framer-motion';
 import { getListStatus } from '../utils/productDictionary';
+import { triggerHaptic } from '../utils/haptics';
 
 
 
@@ -97,7 +98,7 @@ function ListCard({ list, onClick, onSwipeDelete }) {
         <div className="flex-1 min-w-0 space-y-1.5">
           {/* Título + badge */}
           <div className="flex justify-between items-center w-full mb-1">
-            <h3 className="font-semibold text-slate-800 text-sm truncate leading-none pr-2">
+            <h3 className="font-semibold text-slate-800 text-sm truncate leading-tight pb-1 pr-2">
               {list.name}
             </h3>
             <span
@@ -311,7 +312,10 @@ export function HomeView({ lists, loading, removeList, onSelectList, onCreateLis
             <button
               ref={(el) => { filterRefs.current[filter] = el; }}
               key={filter}
-              onClick={() => setActiveFilter(filter)}
+              onClick={() => {
+                setActiveFilter(filter);
+                triggerHaptic(30);
+              }}
               className={`shrink-0 px-4 py-2 rounded-full text-xs font-medium whitespace-nowrap transition-colors flex items-center justify-center ${
                 activeFilter === filter
                   ? 'bg-blue-100 text-[#0f62fe]'
@@ -362,9 +366,7 @@ export function HomeView({ lists, loading, removeList, onSelectList, onCreateLis
               setActiveFilter(FILTERS[newIndex]);
 
               // Activar Haptic Feedback (Vibración súper corta de 30ms para que se sienta como un 'clic')
-              if (navigator.vibrate) {
-                navigator.vibrate(30);
-              }
+              triggerHaptic(30);
             }
           }
         }}

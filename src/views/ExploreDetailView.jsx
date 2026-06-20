@@ -76,7 +76,7 @@ export function ExploreDetailView({ template, onBack, onUseTemplate }) {
         </span>
 
         {/* Nombre de la Lista */}
-        <h2 className="text-lg font-bold text-slate-800 truncate select-none leading-none mt-0.5">
+        <h2 className="text-lg font-bold text-slate-800 truncate select-none leading-tight pb-1 mt-0.5">
           {template.name}
         </h2>
       </div>

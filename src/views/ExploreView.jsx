@@ -136,7 +136,7 @@ export function ExploreView({ onSelectTemplate, onCloneTemplate }) {
                     </div>
 
                     {/* Título de la Plantilla */}
-                    <h3 className="font-semibold text-slate-800 text-sm truncate leading-snug">
+                    <h3 className="font-semibold text-slate-800 text-sm truncate leading-tight pb-1">
                       {list.name}
                     </h3>
 

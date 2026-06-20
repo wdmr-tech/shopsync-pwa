@@ -9,8 +9,10 @@ import { BottomSheet } from './components/BottomSheet';
 import { BottomNavBar } from './components/BottomNavBar';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Plus, Smile, Mic, CheckCircle2 } from 'lucide-react';
-import { COMMON_PRODUCTS, formatQuantityText } from './utils/productDictionary';
+import { COMMON_PRODUCTS, formatQuantityText, formatListDate } from './utils/productDictionary';
 import EmojiPicker from 'emoji-picker-react';
+import { CustomDatePickerModal } from './components/CustomDatePickerModal';
+import { SettingsView } from './views/SettingsView';
 
 const parseQuantityString = (qtyStr) => {
   if (!qtyStr) return { quantity: '', unit: '', customUnit: '' };
@@ -53,10 +55,10 @@ const parseQuantityString = (qtyStr) => {
 
 function App() {
   const { lists, loading: listsLoading, addList, removeList, reorderLists, updateList, refreshListStats } = useLists();
-  const dateInputRef = useRef(null);
   
   // 1. Estados de Navegación y Vistas
   const [currentTab, setCurrentTab] = useState('lists'); // 'lists' | 'explore' | 'history' | 'settings'
+  const [showCustomDatePicker, setShowCustomDatePicker] = useState(false);
   const [currentView, setCurrentView] = useState('home'); // 'home' | 'activeList'
   const [selectedListId, setSelectedListId] = useState(null);
   const [bottomSheet, setBottomSheet] = useState(null); // null | 'addProduct'
@@ -372,6 +374,8 @@ function App() {
                 onCloneTemplate={(template) => setListToClone(template)} 
               />
             )
+          ) : currentTab === 'settings' ? (
+            <SettingsView />
           ) : (
             <div className="flex-1 flex items-center justify-center text-gray-500 font-semibold select-none">
               Próximamente...
@@ -493,41 +497,13 @@ function App() {
                   <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block">
                     Fecha de compra (Opcional)
                   </label>
-                  <div 
-                    className="relative cursor-pointer"
-                    onClick={() => {
-                      if (dateInputRef.current) {
-                        dateInputRef.current.focus();
-                        if (dateInputRef.current.showPicker) {
-                          try {
-                            dateInputRef.current.showPicker();
-                          } catch (err) {
-                            console.error("Error showing picker:", err);
-                          }
-                        }
-                      }
-                    }}
+                  <button 
+                    type="button"
+                    onClick={() => setShowCustomDatePicker(true)}
+                    className="w-full text-left bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-[#0f62fe] placeholder-slate-400 transition-all font-semibold text-slate-800 cursor-pointer hover:bg-slate-100/60"
                   >
-                    <input
-                      ref={dateInputRef}
-                      type={listDate ? "date" : "text"}
-                      placeholder="Selecciona una fecha"
-                      value={listDate}
-                      onFocus={(e) => {
-                        e.target.type = 'date';
-                        if (e.target.showPicker) {
-                          try {
-                            e.target.showPicker();
-                          } catch (err) {}
-                        }
-                      }}
-                      onBlur={(e) => {
-                        if (!e.target.value) e.target.type = 'text';
-                      }}
-                      onChange={(e) => setListDate(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-[#0f62fe] focus:bg-white placeholder-slate-400 transition-all font-semibold text-slate-800 cursor-pointer"
-                    />
-                  </div>
+                    {listDate ? formatListDate(listDate) : "Selecciona una fecha"}
+                  </button>
                 </div>
 
                 {/* Botón CTA (Validación y Estado Activo/Inactivo) */}
@@ -739,6 +715,14 @@ function App() {
         </AnimatePresence>
 
       </div>
+
+      {/* Selector de Fecha Custom */}
+      <CustomDatePickerModal
+        isOpen={showCustomDatePicker}
+        onClose={() => setShowCustomDatePicker(false)}
+        onSelectDate={(date) => setListDate(date)}
+        currentDate={listDate}
+      />
     </div>
   );
 }

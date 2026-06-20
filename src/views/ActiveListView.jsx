@@ -12,6 +12,8 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence, useAnimation } from 'framer-motion';
 import { getCategoryForProduct, formatListDate, getListStatus, formatQuantityText } from '../utils/productDictionary';
+import { triggerHaptic } from '../utils/haptics';
+import { CustomDatePickerModal } from '../components/CustomDatePickerModal';
 
 const ItemCard = ({ item, toggleItem, setItemToDelete, setItemToEdit }) => {
   const controls = useAnimation();
@@ -118,9 +120,9 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
   // Estados para modal de edición de fecha
   const [showDateModal, setShowDateModal] = useState(false);
   const [tempDate, setTempDate] = useState('');
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
 
-  const dateInputRef = useRef(null);
   const touchStartX = useRef(null);
   const touchEndX = useRef(null);
 
@@ -189,6 +191,7 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
   const handleConfirmCompletion = async () => {
     setIsListCompleted(true);
     setShowCompleteModal(false);
+    triggerHaptic(30);
     if (onCompleteList) {
       await onCompleteList();
     }
@@ -227,9 +230,7 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
 
         if (isRightSwipe) {
           // Activar Haptic Feedback (Vibración súper corta de 30ms)
-          if (navigator.vibrate) {
-            navigator.vibrate(30);
-          }
+          triggerHaptic(30);
 
           setIsExiting(true);
           setTimeout(() => {
@@ -307,7 +308,7 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
             className="flex items-center space-x-2 min-w-0 hover:opacity-85 active:opacity-70 transition-opacity text-left cursor-pointer"
           >
             <span className="text-2xl shrink-0 select-none">{list?.emoji}</span>
-            <span className="font-bold text-base truncate leading-none text-slate-800 flex items-center gap-1.5 min-w-0">
+            <span className="font-bold text-base truncate leading-tight pb-1 text-slate-800 flex items-center gap-1.5 min-w-0">
               <span className="truncate">{list?.name}</span>
               <Edit2 size={14} className="text-gray-400 shrink-0" />
             </span>
@@ -576,21 +577,13 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
                 </p>
                 
                 {/* Input de Fecha (Clickable en toda el área) */}
-                <input 
-                  ref={dateInputRef}
-                  type="date"
-                  value={tempDate}
-                  onChange={(e) => setTempDate(e.target.value)}
-                  onClick={(e) => {
-                    // Si el navegador soporta showPicker, oblígalo a abrir el calendario
-                    if (e.target.showPicker) {
-                      try {
-                        e.target.showPicker();
-                      } catch (err) {}
-                    }
-                  }}
-                  className="w-full border border-gray-200 rounded-2xl px-4 py-3 text-slate-800 focus:outline-none focus:border-[#0f62fe] focus:ring-1 focus:ring-[#0f62fe] font-semibold bg-slate-50 cursor-pointer"
-                />
+                <button 
+                  type="button"
+                  onClick={() => setShowDatePicker(true)}
+                  className="w-full text-left border border-gray-200 rounded-2xl px-4 py-3 text-slate-800 focus:outline-none focus:border-[#0f62fe] focus:ring-1 focus:ring-[#0f62fe] font-semibold bg-slate-50 cursor-pointer hover:bg-slate-100 transition-colors"
+                >
+                  {tempDate ? formatListDate(tempDate) : "Selecciona una fecha"}
+                </button>
               </div>
 
               <div className="flex gap-3 w-full pt-2">
@@ -638,6 +631,13 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
         </button>
       </div>
 
+      {/* Selector de fecha custom */}
+      <CustomDatePickerModal
+        isOpen={showDatePicker}
+        onClose={() => setShowDatePicker(false)}
+        onSelectDate={(date) => setTempDate(date)}
+        currentDate={tempDate}
+      />
     </div>
   );
 }
