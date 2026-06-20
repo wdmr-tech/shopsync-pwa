@@ -1,9 +1,9 @@
-import { ListTodo, Compass, Settings } from 'lucide-react';
+import { LayoutList, Compass, Settings } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export function BottomNavBar({ currentTab, setCurrentTab }) {
   const tabs = [
-    { id: 'lists', label: 'Mis Listas', icon: ListTodo },
+    { id: 'lists', label: 'Mis Listas', icon: LayoutList },
     { id: 'explore', label: 'Explorar', icon: Compass },
     { id: 'settings', label: 'Ajustes', icon: Settings },
   ];
