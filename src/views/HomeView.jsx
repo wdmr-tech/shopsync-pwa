@@ -171,9 +171,9 @@ function DeleteConfirmModal({ listName, onConfirm, onCancel }) {
           </div>
         </div>
 
-        <h2 className="text-xl font-bold text-center text-gray-900 mb-2">
+        <h3 className="text-xl font-bold text-center text-gray-900 mb-2">
           ¿Eliminar lista?
-        </h2>
+        </h3>
         <p className="text-gray-500 text-sm text-center mb-6 leading-relaxed">
           Esta acción no se puede deshacer y perderás todos los productos guardados
           {listName ? ` en "${listName}"` : ''}.
@@ -199,7 +199,7 @@ function DeleteConfirmModal({ listName, onConfirm, onCancel }) {
 }
 
 // ─── Vista principal ───────────────────────────────────────────────────────────
-export function HomeView({ lists, loading, removeList, onSelectList, onCreateListClick, onReorder, activeFilter, setActiveFilter }) {
+export function HomeView({ lists, loading, removeList, onSelectList, onCreateListClick, onReorder, activeFilter, setActiveFilter, showToast }) {
   const [listToDelete, setListToDelete] = useState(null); // id de la lista pendiente de confirmar
   const touchStartX = useRef(null);
   const touchEndX = useRef(null);
@@ -236,6 +236,7 @@ export function HomeView({ lists, loading, removeList, onSelectList, onCreateLis
     if (!listToDelete) return;
     try {
       await removeList(listToDelete);
+      if (showToast) showToast('Lista eliminada');
     } catch {
       // El error lo maneja removeList; mantenemos la UX limpia
     } finally {
@@ -286,7 +287,7 @@ export function HomeView({ lists, loading, removeList, onSelectList, onCreateLis
 
       {/* ── HEADER ── */}
       <div className="shrink-0 px-4 pt-4 relative flex items-center justify-between pb-3 border-b border-gray-200 mb-3">
-        <span className="font-bold text-xl text-[#0f62fe]">ShopSync</span>
+        <h1 className="text-xl font-bold tracking-tight text-[#0f62fe]">ShopSync</h1>
 
         <span className="absolute left-1/2 -translate-x-1/2 text-lg font-semibold text-gray-800 pointer-events-none">
           Mis listas

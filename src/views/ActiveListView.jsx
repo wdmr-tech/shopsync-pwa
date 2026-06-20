@@ -92,7 +92,7 @@ const ItemCard = ({ item, toggleItem, setItemToDelete, setItemToEdit }) => {
   );
 };
 
-export function ActiveListView({ list, onBack, onAddProductClick, itemsState, onCompleteList, updateList, setActiveTab, setItemToEdit, onEditList }) {
+export function ActiveListView({ list, onBack, onAddProductClick, itemsState, onCompleteList, updateList, setActiveTab, setItemToEdit, onEditList, showToast }) {
   const {
     items,
     allItems,
@@ -226,6 +226,11 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
         const isRightSwipe = distance > 100; // Umbral de 100px para volver atrás
 
         if (isRightSwipe) {
+          // Activar Haptic Feedback (Vibración súper corta de 30ms)
+          if (navigator.vibrate) {
+            navigator.vibrate(30);
+          }
+
           setIsExiting(true);
           setTimeout(() => {
             try {
@@ -444,9 +449,9 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
               transition={{ type: 'spring', damping: 25, stiffness: 300 }}
               className="absolute top-1/2 left-5 right-5 -translate-y-1/2 bg-white rounded-3xl p-6 shadow-2xl z-50 flex flex-col space-y-4 border border-slate-100"
             >
-              <div className="space-y-1.5">
-                <h4 className="font-bold text-slate-800 text-lg">¿Eliminar producto?</h4>
-                <p className="text-sm text-slate-500 font-medium">Esta acción no se puede deshacer.</p>
+              <div className="space-y-1.5 flex flex-col items-center">
+                <h3 className="font-bold text-slate-800 text-lg text-center">¿Eliminar producto?</h3>
+                <p className="text-sm text-slate-500 font-medium text-center">Esta acción no se puede deshacer.</p>
               </div>
 
               <div className="flex space-x-3 pt-2">
@@ -459,9 +464,15 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
                 </button>
                 <button
                   type="button"
-                  onClick={() => {
-                    removeItem(itemToDelete);
-                    setItemToDelete(null);
+                  onClick={async () => {
+                    try {
+                      await removeItem(itemToDelete);
+                      if (showToast) showToast('Producto eliminado');
+                    } catch (err) {
+                      // El error lo maneja el hook
+                    } finally {
+                      setItemToDelete(null);
+                    }
                   }}
                   className="flex-1 h-11 bg-red-500 hover:bg-red-600 text-white font-semibold text-sm rounded-xl transition-colors"
                 >
@@ -494,15 +505,19 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
               transition={{ type: 'spring', damping: 25, stiffness: 300 }}
               className="absolute top-1/2 left-5 right-5 -translate-y-1/2 bg-white rounded-3xl p-6 shadow-2xl z-50 flex flex-col space-y-4 border border-slate-100"
             >
-              <div className="space-y-1.5">
-                <h4 className="font-bold text-slate-800 text-lg">
-                  {modalType === 'auto' ? '¡Lista completada!' : '¿Completar lista anticipadamente?'}
-                </h4>
-                <p className="text-sm text-slate-500 font-medium">
-                  {modalType === 'auto'
-                    ? 'Has marcado todos los productos. ¿Deseas dar por finalizada esta compra?'
-                    : `Aún faltan ${totalItems - completedItems} productos por marcar. ¿Seguro que quieres finalizarla?`}
-                </p>
+              <div className="space-y-1.5 flex flex-col items-center">
+                <h3 className="text-xl font-bold text-slate-800 text-center mb-2">
+                  {modalType === 'auto' ? '¡Lista completada!' : '¿Completar lista antes?'}
+                </h3>
+                {modalType === 'auto' ? (
+                  <p className="text-gray-500 text-center text-sm mb-4 font-medium">
+                    Has marcado todos los productos. ¿Deseas dar por finalizada esta compra?
+                  </p>
+                ) : (
+                  <p className="text-gray-500 text-center text-sm mb-4 font-medium">
+                    Aún faltan <span className="font-bold text-[#0f62fe]">{totalItems - completedItems}</span> productos por marcar. ¿Seguro que quieres finalizarla?
+                  </p>
+                )}
               </div>
 
               <div className="flex space-x-3 pt-2">
@@ -516,7 +531,11 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
                 <button
                   type="button"
                   onClick={handleConfirmCompletion}
-                  className="flex-1 h-11 bg-[#24a148] hover:bg-green-600 text-white font-semibold text-sm rounded-xl transition-colors"
+                  className={`flex-1 h-11 font-semibold text-sm rounded-xl transition-colors ${
+                    modalType === 'auto'
+                      ? 'bg-[#24a148] hover:bg-green-600 text-white'
+                      : 'bg-yellow-500 hover:bg-yellow-600 text-white'
+                  }`}
                 >
                   Completar
                 </button>

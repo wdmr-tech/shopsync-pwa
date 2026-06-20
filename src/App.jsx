@@ -8,7 +8,7 @@ import { ExploreDetailView } from './views/ExploreDetailView';
 import { BottomSheet } from './components/BottomSheet';
 import { BottomNavBar } from './components/BottomNavBar';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Plus, Smile, Mic } from 'lucide-react';
+import { Plus, Smile, Mic, CheckCircle2 } from 'lucide-react';
 import { COMMON_PRODUCTS, formatQuantityText } from './utils/productDictionary';
 import EmojiPicker from 'emoji-picker-react';
 
@@ -67,8 +67,22 @@ function App() {
   // Estado del Splash Screen
   const [showSplash, setShowSplash] = useState(true);
 
+  // Estado para Toasts / Snackbars
+  const [toastMessage, setToastMessage] = useState('');
+  const toastTimeoutRef = useRef(null);
+  const showToast = (message) => {
+    if (toastTimeoutRef.current) {
+      clearTimeout(toastTimeoutRef.current);
+    }
+    setToastMessage(message);
+    toastTimeoutRef.current = setTimeout(() => {
+      setToastMessage('');
+      toastTimeoutRef.current = null;
+    }, 3000);
+  };
+
   // Filtro de listas para HomeView
-  const [activeFilter, setActiveFilter] = useState('Todas');
+  const [activeFilter, setActiveFilter] = useState('Pendientes');
 
   // Formulario de creación de listas
   const [newListName, setNewListName] = useState('');
@@ -133,11 +147,8 @@ function App() {
       }
 
       if (finalTranscript) {
-        // Actualizamos el input del nombre del producto, añadiendo espacio si ya había texto
-        setProductName(prev => {
-          const separator = prev && !prev.endsWith(' ') ? ' ' : '';
-          return prev + separator + finalTranscript;
-        });
+        const capitalizeFirstLetter = (string) => string.charAt(0).toUpperCase() + string.slice(1);
+        setProductName(prev => prev ? `${prev} ${finalTranscript}` : capitalizeFirstLetter(finalTranscript));
       }
     };
 
@@ -288,11 +299,8 @@ function App() {
               transition={{ duration: 0.5, delay: 0.15 }}
               className="flex flex-col items-center"
             >
-              <div className="text-6xl mb-4 select-none">🛍️</div>
+              <div className="text-6xl mb-4 select-none">🛒</div>
               <h1 className="text-4xl font-bold tracking-tight">ShopSync</h1>
-              <p className="text-white/60 text-[10px] mt-2 font-semibold uppercase tracking-widest">
-                Carbon Friendly Edition
-              </p>
             </motion.div>
             
             <div className="w-28 h-1 bg-white/20 rounded-full mt-10 overflow-hidden relative">
@@ -321,6 +329,7 @@ function App() {
                 onReorder={reorderLists}
                 activeFilter={activeFilter}
                 setActiveFilter={setActiveFilter}
+                showToast={showToast}
               />
             ) : (
               <ActiveListView
@@ -345,6 +354,7 @@ function App() {
                 setActiveTab={setActiveFilter}
                 setItemToEdit={setEditingItem}
                 onEditList={setListToEdit}
+                showToast={showToast}
               />
             )
           ) : currentTab === 'explore' ? (
@@ -711,6 +721,21 @@ function App() {
             </BottomSheet>
           )}
 
+        </AnimatePresence>
+
+        {/* Toast / Snackbar Notification */}
+        <AnimatePresence>
+          {toastMessage && (
+            <motion.div
+              initial={{ opacity: 0, y: -50 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -50 }}
+              className="fixed top-20 left-1/2 -translate-x-1/2 z-50 bg-gray-900 text-white px-4 py-2 rounded-full shadow-lg flex items-center gap-2 text-sm font-medium"
+            >
+              <CheckCircle2 size={16} className="text-green-400" />
+              {toastMessage}
+            </motion.div>
+          )}
         </AnimatePresence>
 
       </div>

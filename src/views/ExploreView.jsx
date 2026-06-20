@@ -3,6 +3,14 @@ import { Search, Copy } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { COMMUNITY_CATEGORIES, COMMUNITY_LISTS } from '../utils/communityLists';
 
+const CATEGORY_COLORS = {
+  'Recetas': 'bg-orange-100 text-orange-700',
+  'Viajes': 'bg-teal-100 text-teal-700',
+  'Hogar': 'bg-indigo-100 text-indigo-700',
+  'Eventos': 'bg-rose-100 text-rose-700',
+  'Todas': 'bg-gray-100 text-gray-700'
+};
+
 export function ExploreView({ onSelectTemplate, onCloneTemplate }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState('Todas');
@@ -32,9 +40,10 @@ export function ExploreView({ onSelectTemplate, onCloneTemplate }) {
       `}</style>
 
       {/* ── HEADER ── */}
-      <div className="shrink-0 px-4 pt-4 flex items-center justify-between pb-3 border-b border-gray-200 mb-3">
-        <span className="font-bold text-xl text-[#0f62fe]">ShopSync</span>
-        <span className="text-lg font-bold text-gray-800">
+      <div className="shrink-0 px-4 pt-4 relative flex items-center justify-between pb-3 border-b border-gray-200 mb-3">
+        <h1 className="text-xl font-bold tracking-tight text-[#0f62fe]">ShopSync</h1>
+
+        <span className="absolute left-1/2 -translate-x-1/2 text-lg font-bold text-gray-800 pointer-events-none">
           Explorar
         </span>
       </div>
@@ -107,18 +116,18 @@ export function ExploreView({ onSelectTemplate, onCloneTemplate }) {
                   exit={{ opacity: 0, y: -8 }}
                   transition={{ duration: 0.2, ease: "easeOut" }}
                   onClick={() => onSelectTemplate(list)}
-                  className="relative bg-white border border-gray-100 rounded-2xl p-4 shadow-sm flex items-start gap-3 hover:border-gray-200 transition-colors select-none cursor-pointer active:scale-[0.99]"
+                  className="relative bg-white border border-gray-100 rounded-2xl p-4 shadow-sm flex items-center gap-3 hover:border-gray-200 transition-colors select-none cursor-pointer active:scale-[0.99]"
                 >
                   {/* Emoji */}
-                  <div className="w-12 h-12 shrink-0 bg-slate-50 rounded-xl flex items-center justify-center select-none">
-                    <span className="text-3xl leading-none flex items-center">{list.emoji}</span>
+                  <div className="w-12 h-12 flex-shrink-0 flex items-center justify-center bg-gray-50 rounded-xl text-3xl leading-none select-none">
+                    {list.emoji}
                   </div>
 
                   {/* Detalles */}
                   <div className="flex-1 min-w-0 space-y-1 pr-8">
                     {/* Fila superior: Categoría y Autor */}
                     <div className="flex justify-between items-center w-full mb-1">
-                      <span className="shrink-0 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider bg-blue-50 text-[#0f62fe]">
+                      <span className={`shrink-0 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${CATEGORY_COLORS[list.category] || 'bg-blue-100 text-blue-700'}`}>
                         {list.category}
                       </span>
                       <span className="text-[11px] font-bold text-gray-400">
