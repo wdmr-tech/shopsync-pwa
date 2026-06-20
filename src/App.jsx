@@ -293,7 +293,10 @@ function App() {
                 }}
               />
             ) : (
-              <ExploreView onSelectTemplate={setSelectedTemplate} />
+              <ExploreView 
+                onSelectTemplate={setSelectedTemplate} 
+                onCloneTemplate={(template) => setListToClone(template)} 
+              />
             )
           ) : (
             <div className="flex-1 flex items-center justify-center text-gray-500 font-semibold select-none">
@@ -322,7 +325,7 @@ function App() {
                 setListDate('');
                 setShowEmojiPicker(false);
               }}
-              title={listToClone ? 'GUARDAR LISTA' : listToEdit?.id ? 'EDITAR LISTA' : 'CREAR NUEVA LISTA'}
+              title={listToClone ? 'COPIAR LISTA' : listToEdit?.id ? 'EDITAR LISTA' : 'CREAR NUEVA LISTA'}
             >
               <form onSubmit={handleSaveList} className="space-y-4 px-1 pt-1 pb-4">
                 {/* 1. Nombre de la lista */}

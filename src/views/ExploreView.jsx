@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { Search } from 'lucide-react';
+import { Search, Copy } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { COMMUNITY_CATEGORIES, COMMUNITY_LISTS } from '../utils/communityLists';
 
-export function ExploreView({ onSelectTemplate }) {
+export function ExploreView({ onSelectTemplate, onCloneTemplate }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState('Todas');
 
@@ -107,7 +107,7 @@ export function ExploreView({ onSelectTemplate }) {
                   exit={{ opacity: 0, y: -8 }}
                   transition={{ duration: 0.2, ease: "easeOut" }}
                   onClick={() => onSelectTemplate(list)}
-                  className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm flex items-start gap-3 hover:border-gray-200 transition-colors select-none cursor-pointer active:scale-[0.99]"
+                  className="relative bg-white border border-gray-100 rounded-2xl p-4 shadow-sm flex items-start gap-3 hover:border-gray-200 transition-colors select-none cursor-pointer active:scale-[0.99]"
                 >
                   {/* Emoji */}
                   <div className="w-12 h-12 shrink-0 bg-slate-50 rounded-xl flex items-center justify-center select-none">
@@ -115,7 +115,7 @@ export function ExploreView({ onSelectTemplate }) {
                   </div>
 
                   {/* Detalles */}
-                  <div className="flex-1 min-w-0 space-y-1">
+                  <div className="flex-1 min-w-0 space-y-1 pr-8">
                     {/* Fila superior: Categoría y Autor */}
                     <div className="flex justify-between items-center w-full mb-1">
                       <span className="shrink-0 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider bg-blue-50 text-[#0f62fe]">
@@ -143,6 +143,18 @@ export function ExploreView({ onSelectTemplate }) {
                       </span>
                     </div>
                   </div>
+
+                  {/* Botón de copia rápida superpuesto */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation(); // MUY IMPORTANTE: Evita abrir el detalle
+                      onCloneTemplate(list); // Activa el Bottom Sheet en modo clonación
+                    }}
+                    className="absolute bottom-4 right-4 p-2 bg-blue-50 text-[#0f62fe] hover:bg-[#0f62fe] hover:text-white rounded-lg transition-colors flex items-center justify-center active:scale-95"
+                    aria-label="Copiar lista"
+                  >
+                    <Copy size={16} />
+                  </button>
                 </motion.div>
               ))}
             </div>

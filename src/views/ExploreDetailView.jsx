@@ -144,7 +144,7 @@ export function ExploreDetailView({ template, onBack, onUseTemplate }) {
           className="w-full h-12 bg-[#0f62fe] hover:bg-[#0b51d4] active:bg-[#0943b1] text-white font-semibold text-sm rounded-2xl flex items-center justify-center space-x-2 shadow-lg shadow-blue-500/20 active:scale-[0.99] transition-all"
         >
           <Copy size={16} />
-          <span>Usar esta lista</span>
+          <span>Copiar lista</span>
         </button>
       </div>
     </div>
