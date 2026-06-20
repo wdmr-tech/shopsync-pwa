@@ -111,31 +111,41 @@ function App() {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) return alert("Dictado no soportado en este navegador.");
 
-    if (isListening) {
-      // Dejar que termine solo o forzar detención (false parará solo)
-      return;
-    }
+    if (isListening) return;
 
     const recognition = new SpeechRecognition();
     recognition.lang = 'es-ES';
     recognition.continuous = false; // Solo una frase corta
-    recognition.interimResults = true; // Permite ver cómo se escribe en vivo
+    recognition.interimResults = true;
 
     recognition.onstart = () => setIsListening(true);
-    
+
     recognition.onresult = (event) => {
-      let interimTranscript = '';
+      let finalTranscript = '';
+      
       for (let i = event.resultIndex; i < event.results.length; ++i) {
+        // FIX CRÍTICO: Añadido [0] para acceder correctamente al transcript
+        const transcriptChunk = event.results[i][0].transcript;
+        
         if (event.results[i].isFinal) {
-          // Al terminar la frase, actualizar el input final
-          setProductName(prev => prev ? `${prev} ${event.results[i].transcript}` : event.results[i].transcript);
-        } else {
-          interimTranscript += event.results[i].transcript;
+          finalTranscript += transcriptChunk;
         }
+      }
+
+      if (finalTranscript) {
+        // Actualizamos el input del nombre del producto, añadiendo espacio si ya había texto
+        setProductName(prev => {
+          const separator = prev && !prev.endsWith(' ') ? ' ' : '';
+          return prev + separator + finalTranscript;
+        });
       }
     };
 
-    recognition.onerror = () => setIsListening(false);
+    recognition.onerror = (e) => {
+      console.warn("Error de dictado:", e.error);
+      setIsListening(false);
+    };
+    
     recognition.onend = () => {
       setIsListening(false);
       setAutoStartVoice(false);
@@ -144,7 +154,7 @@ function App() {
     try {
       recognition.start();
     } catch (e) {
-      console.warn("Error starting speech recognition", e);
+      console.warn("No se pudo iniciar el dictado", e);
     }
   };
 
@@ -570,7 +580,7 @@ function App() {
                         }
                       }}
                       className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-[#0f62fe] focus:bg-white placeholder-slate-400 transition-all font-semibold pr-12"
-                      autoFocus
+
                     />
                     <button 
                       type="button"

@@ -9,7 +9,8 @@ import {
   Calendar,
   Edit2,
   ArrowRight,
-  Mic
+  Mic,
+  Loader2
 } from 'lucide-react';
 import { motion, AnimatePresence, useAnimation } from 'framer-motion';
 import { getCategoryForProduct, formatListDate, getListStatus, formatQuantityText } from '../utils/productDictionary';
@@ -108,6 +109,109 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
   } = itemsState;
 
   const [itemToDelete, setItemToDelete] = useState(null);
+
+  // Estados de Voz
+  const [isListening, setIsListening] = useState(false);
+  const [isProcessingVoice, setIsProcessingVoice] = useState(false);
+  const [transcript, setTranscript] = useState('');
+  const recognitionRef = useRef(null);
+  const finalTranscriptRef = useRef(''); // Buffer para almacenar la frase completa
+
+  const processVoiceInput = async (spokenText) => {
+    if (!spokenText || !spokenText.trim()) return;
+    
+    // Dividir por "y", "e", comas o puntos
+    const rawItems = spokenText.toLowerCase().split(/ y |,| e |\./g).map(i => i.trim()).filter(i => i.length > 1);
+
+    const numberWords = { 'un': 1, 'una': 1, 'uno': 1, 'dos': 2, 'tres': 3, 'cuatro': 4, 'cinco': 5, 'seis': 6, 'siete': 7, 'ocho': 8, 'nueve': 9, 'diez': 10 };
+    const knownUnits = ['kilo', 'kilos', 'kg', 'litro', 'litros', 'lt', 'gramo', 'gramos', 'gr', 'caja', 'cajas', 'paquete', 'paquetes', 'bolsa', 'bolsas', 'unidad', 'unidades', 'lata', 'latas', 'botella', 'botellas', 'docena', 'docenas'];
+
+    for (const rawItem of rawItems) {
+      const words = rawItem.split(' ');
+      let quantity = '';
+      let unit = '';
+      let nameWords = [...words];
+
+      // Detectar si la primera palabra es un número
+      const firstWord = words[0];
+      const parsedNum = !isNaN(firstWord) ? parseFloat(firstWord) : numberWords[firstWord];
+      
+      if (parsedNum !== undefined) {
+        quantity = parsedNum;
+        nameWords = words.slice(1);
+        
+        // Detectar si la segunda palabra es una unidad
+        const secondWord = nameWords[0] || '';
+        if (knownUnits.includes(secondWord)) {
+          unit = secondWord;
+          nameWords = nameWords.slice(1);
+          
+          // Quitar "de" (ej. "kilo de pan" -> "pan")
+          if (nameWords[0] === 'de' || nameWords[0] === 'del') {
+            nameWords = nameWords.slice(1);
+          }
+        }
+      }
+
+      const name = nameWords.join(' ').trim();
+      if (!name) continue;
+
+      // Guardar en BD usando tu función compartida (asumiendo itemsState.createItem)
+      const quantityString = formatQuantityText(quantity, unit); // Usa tu formateador importado
+      await itemsState.createItem(name, quantityString);
+    }
+  };
+
+  useEffect(() => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) return;
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'es-ES';
+    recognition.continuous = true; // Escucha mientras mantienes apretado
+    recognition.interimResults = true; // Feedback visual
+
+    recognition.onresult = (event) => {
+      let interimTranscript = '';
+      for (let i = event.resultIndex; i < event.results.length; ++i) {
+        if (event.results[i].isFinal) {
+          // MUY IMPORTANTE: Usar evento.results[i][0].transcript y acumularlo
+          finalTranscriptRef.current += event.results[i][0].transcript + ' ';
+        } else {
+          interimTranscript += event.results[i][0].transcript;
+        }
+      }
+      setTranscript(finalTranscriptRef.current + interimTranscript);
+    };
+
+    recognition.onerror = (e) => {
+      if (e.error !== 'aborted') console.warn("Dictado error:", e.error);
+      setIsListening(false);
+    };
+    
+    recognition.onend = () => setIsListening(false);
+    
+    recognitionRef.current = recognition;
+  }, []);
+
+  const handleMicPointerUp = (e) => {
+    if (e) e.preventDefault();
+    if (!isListening) return;
+    
+    setIsListening(false);
+    try { recognitionRef.current.stop(); } catch(err) {}
+    
+    setIsProcessingVoice(true);
+    
+    // Pequeño delay para asegurar que llegó el último fragmento de audio
+    setTimeout(() => {
+      const capturedText = finalTranscriptRef.current.trim();
+      processVoiceInput(capturedText).finally(() => {
+        setIsProcessingVoice(false);
+        setTranscript(capturedText); // Mostrar en UI brevemente
+      });
+    }, 500);
+  };
 
   // Estados de finalización de lista
   const [isListCompleted, setIsListCompleted] = useState(() => {
@@ -608,6 +712,23 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
 
 
 
+      {/* Feedback de Procesamiento (Overlay) */}
+      <AnimatePresence>
+        {isProcessingVoice && (
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            className="absolute inset-0 z-50 flex items-center justify-center bg-white/60 backdrop-blur-sm pointer-events-none"
+          >
+            <div className="bg-gray-900 text-white px-6 py-3.5 rounded-2xl flex items-center gap-3 shadow-2xl">
+              <Loader2 className="animate-spin shrink-0" size={18} />
+              <span className="font-semibold text-sm tracking-wide">Procesando audio...</span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* ── Dock Inferior ─────────────────────────────────────────────────────── */}
       <div className="absolute bottom-0 left-0 w-full p-5 bg-white border-t border-slate-100 z-10 pb-safe">
         <div className="flex gap-2 w-full items-center">
@@ -621,17 +742,46 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
             <span>Agregar Producto</span>
           </button>
 
-          {/* Botón de Dictado (Abre BottomSheet con dictado activo) */}
-          <button
+          {/* Botón Hold to Talk */}
+          <button 
             type="button"
-            onClick={() => onAddProductClick(true)}
-            aria-label="Dictado de voz"
-            title="Agrega productos por voz"
-            className="w-12 h-12 rounded-xl flex items-center justify-center bg-gray-100 text-gray-600 hover:bg-gray-200 active:bg-gray-300 transition-all duration-150 shrink-0 select-none"
+            onPointerDown={(e) => {
+              e.preventDefault();
+              if (!recognitionRef.current) return alert("Dictado no soportado.");
+              
+              finalTranscriptRef.current = '';
+              setTranscript('');
+              setIsListening(true);
+              try { recognitionRef.current.start(); } catch (err) {}
+            }}
+            onPointerUp={handleMicPointerUp}
+            onPointerLeave={(e) => {
+              // Si el usuario desliza el dedo fuera del botón, soltamos
+              if (isListening) handleMicPointerUp(e); 
+            }}
+            aria-label={isListening ? 'Escuchando… suelta para guardar' : 'Mantén presionado para dictar'}
+            title={isListening ? 'Suelta para guardar' : 'Mantén presionado para dictar'}
+            className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-150 shrink-0 touch-none select-none ${
+              isListening ? 'bg-red-500 text-white scale-110 shadow-lg shadow-red-400/40' : 'bg-gray-100 text-gray-600 hover:bg-gray-200 active:bg-gray-300'
+            }`}
           >
             <Mic size={20} />
           </button>
         </div>
+
+        {/* Feedback del transcript (aparece debajo del dock cuando termina) */}
+        <AnimatePresence>
+          {transcript && !isListening && !isProcessingVoice && (
+            <motion.p
+              initial={{ opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className="mt-2 text-xs text-gray-400 text-center truncate px-2"
+            >
+              🎙️ &ldquo;{transcript}&rdquo;
+            </motion.p>
+          )}
+        </AnimatePresence>
       </div>
 
     </div>
