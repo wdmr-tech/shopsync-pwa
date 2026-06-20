@@ -8,9 +8,7 @@ import {
   ShoppingBag,
   Calendar,
   Edit2,
-  ArrowRight,
-  Mic,
-  Loader2
+  ArrowRight
 } from 'lucide-react';
 import { motion, AnimatePresence, useAnimation } from 'framer-motion';
 import { getCategoryForProduct, formatListDate, getListStatus, formatQuantityText } from '../utils/productDictionary';
@@ -109,145 +107,6 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
   } = itemsState;
 
   const [itemToDelete, setItemToDelete] = useState(null);
-
-  // Estados de Voz
-  const [isListening, setIsListening] = useState(false);
-  const [isProcessingVoice, setIsProcessingVoice] = useState(false);
-  const [transcript, setTranscript] = useState('');
-  const recognitionRef = useRef(null);
-  const finalTranscriptRef = useRef(''); // Buffer para almacenar la frase completa
-
-  const processVoiceInput = async (spokenText) => {
-    if (!spokenText || !spokenText.trim()) return;
-
-    // 1. Limpieza inicial: Convertir todo a minúsculas y quitar comas sueltas
-    const cleanText = spokenText.toLowerCase().replace(/,/g, ' ');
-
-    // 2. Separar por palabras clave comunes ("y", "además", "también")
-    const splitByConjunctions = cleanText.split(/\by\b|\bademás\b|\btambién\b/);
-
-    // 3. Separar aún más. Si el usuario dictó palabras sueltas sin pausas (ej. "carpa gorro mochila")
-    // vamos a asumir que cada palabra que NO es una unidad ni número es un producto distinto.
-    const rawItems = [];
-    const knownUnits = ['kilo', 'kilos', 'kg', 'litro', 'litros', 'lt', 'gramo', 'gramos', 'gr', 'caja', 'cajas', 'paquete', 'paquetes', 'bolsa', 'bolsas', 'unidad', 'unidades', 'lata', 'latas', 'botella', 'botellas', 'docena', 'docenas', 'pack', 'packs'];
-    const numberWords = { 'un': 1, 'una': 1, 'uno': 1, 'dos': 2, 'tres': 3, 'cuatro': 4, 'cinco': 5, 'seis': 6, 'siete': 7, 'ocho': 8, 'nueve': 9, 'diez': 10 };
-
-    for (const chunk of splitByConjunctions) {
-      const words = chunk.trim().split(/\s+/).filter(w => w);
-      
-      let currentItemName = [];
-      let currentQuantity = '';
-      let currentUnit = '';
-
-      for (let i = 0; i < words.length; i++) {
-        const word = words[i];
-        const parsedNum = !isNaN(word) ? parseFloat(word) : numberWords[word];
-        
-        // Si la palabra es un número
-        if (parsedNum !== undefined) {
-           // Si ya teníamos un nombre en curso, lo guardamos antes de empezar uno nuevo
-           if (currentItemName.length > 0) {
-             rawItems.push({ name: currentItemName.join(' '), quantity: currentQuantity, unit: currentUnit });
-             currentItemName = [];
-             currentQuantity = '';
-             currentUnit = '';
-           }
-           currentQuantity = parsedNum;
-        } 
-        // Si la palabra es una unidad y justo la anterior era un número
-        else if (knownUnits.includes(word) && currentQuantity !== '') {
-           currentUnit = word;
-        }
-        // Ignorar conectores tontos
-        else if (['de', 'del'].includes(word) && currentQuantity !== '' && currentItemName.length === 0) {
-          continue;
-        }
-        // Es parte del nombre del producto
-        else {
-           // Si no venimos de un número y ya tenemos un nombre de 1 o más palabras
-           // y el usuario dijo "carpa gorro" (dos nombres sueltos). 
-           // Para este parser básico, asumiremos que "carpa térmica" es un producto, 
-           // pero dejaremos que el usuario decida si lo edita.
-           currentItemName.push(word);
-        }
-      }
-      
-      // Guardar el último ítem procesado en este chunk
-      if (currentItemName.length > 0) {
-        rawItems.push({ name: currentItemName.join(' '), quantity: currentQuantity, unit: currentUnit });
-      }
-    }
-
-    // 4. Crear los ítems con mayúscula inicial
-    for (const item of rawItems) {
-      if (!item.name) continue;
-      
-      // Capitalizar la primera letra
-      const capitalizedName = item.name.charAt(0).toUpperCase() + item.name.slice(1);
-      const quantityString = formatQuantityText(item.quantity, item.unit);
-      
-      await itemsState.createItem(capitalizedName, quantityString);
-    }
-  };
-
-  useEffect(() => {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) return;
-
-    const recognition = new SpeechRecognition();
-    recognition.lang = 'es-ES';
-    recognition.continuous = true; // Escucha mientras mantienes apretado
-    recognition.interimResults = true; // Feedback visual
-
-    recognition.onresult = (event) => {
-      let finalChunk = '';
-      let interimChunk = '';
-
-      for (let i = event.resultIndex; i < event.results.length; ++i) {
-        if (event.results[i].isFinal) {
-          finalChunk += event.results[i][0].transcript + ' ';
-        } else {
-          interimChunk += event.results[i][0].transcript;
-        }
-      }
-
-      // Solo guardamos en la referencia lo que está 100% confirmado (isFinal)
-      if (finalChunk) {
-        finalTranscriptRef.current += finalChunk;
-      }
-      
-      // Para la UI, mostramos lo confirmado + el borrador actual (interim)
-      setTranscript(finalTranscriptRef.current + interimChunk);
-    };
-
-    recognition.onerror = (e) => {
-      if (e.error !== 'aborted') console.warn("Dictado error:", e.error);
-      setIsListening(false);
-    };
-    
-    recognition.onend = () => setIsListening(false);
-    
-    recognitionRef.current = recognition;
-  }, []);
-
-  const handleMicPointerUp = (e) => {
-    if (e) e.preventDefault();
-    if (!isListening) return;
-    
-    setIsListening(false);
-    try { recognitionRef.current.stop(); } catch(err) {}
-    
-    setIsProcessingVoice(true);
-    
-    // Pequeño delay para asegurar que llegó el último fragmento de audio
-    setTimeout(() => {
-      const capturedText = finalTranscriptRef.current.trim();
-      processVoiceInput(capturedText).finally(() => {
-        setIsProcessingVoice(false);
-        setTranscript(capturedText); // Mostrar en UI brevemente
-      });
-    }, 500);
-  };
 
   // Estados de finalización de lista
   const [isListCompleted, setIsListCompleted] = useState(() => {
@@ -748,76 +607,16 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
 
 
 
-      {/* Feedback de Procesamiento (Overlay) */}
-      <AnimatePresence>
-        {isProcessingVoice && (
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.9 }}
-            className="absolute inset-0 z-50 flex items-center justify-center bg-white/60 backdrop-blur-sm pointer-events-none"
-          >
-            <div className="bg-gray-900 text-white px-6 py-3.5 rounded-2xl flex items-center gap-3 shadow-2xl">
-              <Loader2 className="animate-spin shrink-0" size={18} />
-              <span className="font-semibold text-sm tracking-wide">Procesando audio...</span>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
       {/* ── Dock Inferior ─────────────────────────────────────────────────────── */}
       <div className="absolute bottom-0 left-0 w-full p-5 bg-white border-t border-slate-100 z-10 pb-safe">
-        <div className="flex gap-2 w-full items-center">
-
-          {/* Botón principal Agregar Producto */}
-          <button
-            onClick={() => onAddProductClick(false)}
-            className="flex-1 h-12 bg-[#0f62fe] hover:bg-[#0b51d4] active:bg-[#0943b1] text-white font-semibold text-sm rounded-2xl flex items-center justify-center space-x-2 shadow-lg shadow-blue-500/20 active:scale-[0.99] transition-all"
-          >
-            <Plus size={16} />
-            <span>Agregar Producto</span>
-          </button>
-
-          {/* Botón Hold to Talk */}
-          <button 
-            type="button"
-            onPointerDown={(e) => {
-              e.preventDefault();
-              if (!recognitionRef.current) return alert("Dictado no soportado.");
-              
-              finalTranscriptRef.current = '';
-              setTranscript('');
-              setIsListening(true);
-              try { recognitionRef.current.start(); } catch (err) {}
-            }}
-            onPointerUp={handleMicPointerUp}
-            onPointerLeave={(e) => {
-              // Si el usuario desliza el dedo fuera del botón, soltamos
-              if (isListening) handleMicPointerUp(e); 
-            }}
-            aria-label={isListening ? 'Escuchando… suelta para guardar' : 'Mantén presionado para dictar'}
-            title={isListening ? 'Suelta para guardar' : 'Mantén presionado para dictar'}
-            className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-150 shrink-0 touch-none select-none ${
-              isListening ? 'bg-red-500 text-white scale-110 shadow-lg shadow-red-400/40' : 'bg-gray-100 text-gray-600 hover:bg-gray-200 active:bg-gray-300'
-            }`}
-          >
-            <Mic size={20} />
-          </button>
-        </div>
-
-        {/* Feedback del transcript (aparece debajo del dock cuando termina) */}
-        <AnimatePresence>
-          {transcript && !isListening && !isProcessingVoice && (
-            <motion.p
-              initial={{ opacity: 0, y: -4 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              className="mt-2 text-xs text-gray-400 text-center truncate px-2"
-            >
-              🎙️ &ldquo;{transcript}&rdquo;
-            </motion.p>
-          )}
-        </AnimatePresence>
+        {/* Botón principal Agregar Producto (Único y de ancho completo) */}
+        <button
+          onClick={() => onAddProductClick(false)} // Abre el Bottom Sheet normal
+          className="w-full h-12 bg-[#0f62fe] hover:bg-[#0b51d4] active:bg-[#0943b1] text-white font-semibold text-sm rounded-2xl flex items-center justify-center space-x-2 shadow-lg shadow-blue-500/20 active:scale-[0.99] transition-all"
+        >
+          <Plus size={16} />
+          <span>Agregar Producto</span>
+        </button>
       </div>
 
     </div>
