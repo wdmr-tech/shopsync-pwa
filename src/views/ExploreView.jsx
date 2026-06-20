@@ -40,7 +40,7 @@ export function ExploreView({ onSelectTemplate }) {
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
           <input
             type="text"
-            placeholder="Buscar plantillas..."
+            placeholder="Buscar listas..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:border-[#0f62fe] focus:bg-white placeholder-slate-400 transition-all font-semibold"
@@ -80,10 +80,10 @@ export function ExploreView({ onSelectTemplate }) {
             >
               <span className="text-5xl select-none">🔍</span>
               <p className="text-sm font-semibold text-slate-500">
-                Sin plantillas encontradas
+                Sin listas encontradas
               </p>
               <p className="text-xs text-slate-400">
-                Prueba buscando otra palabra clave o categoría.
+                Prueba buscando otra lista o categoría.
               </p>
             </motion.div>
           ) : (

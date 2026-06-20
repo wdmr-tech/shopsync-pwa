@@ -15,7 +15,7 @@ export function ExploreDetailView({ template, onBack, onUseTemplate }) {
     }, 250);
   };
 
-  // 1. Agrupar items de la plantilla por categoría
+  // 1. Agrupar items de la lista por categoría
   const groupedItems = (template.items || []).reduce((acc, item) => {
     const category = getCategoryForProduct(item.name);
     if (!acc[category]) acc[category] = [];
@@ -75,7 +75,7 @@ export function ExploreDetailView({ template, onBack, onUseTemplate }) {
           {template.emoji}
         </span>
 
-        {/* Nombre de la Plantilla */}
+        {/* Nombre de la Lista */}
         <h2 className="text-lg font-bold text-slate-800 truncate select-none leading-none mt-0.5">
           {template.name}
         </h2>
@@ -86,7 +86,7 @@ export function ExploreDetailView({ template, onBack, onUseTemplate }) {
         {/* Descripción de la plantilla */}
         <div className="bg-blue-50/50 rounded-2xl p-4 border border-blue-50/50">
           <p className="text-xs text-blue-800/80 font-bold uppercase tracking-wider mb-1">
-            Descripción de la Plantilla
+            Descripción de la Lista
           </p>
           <p className="text-sm text-slate-600 leading-relaxed">
             {template.description}
@@ -104,7 +104,7 @@ export function ExploreDetailView({ template, onBack, onUseTemplate }) {
         {/* Productos agrupados */}
         {categories.length === 0 ? (
           <div className="py-10 text-center text-sm font-semibold text-slate-500">
-            Esta plantilla no contiene productos.
+            Esta lista no contiene productos.
           </div>
         ) : (
           <div className="space-y-6">
@@ -144,7 +144,7 @@ export function ExploreDetailView({ template, onBack, onUseTemplate }) {
           className="w-full h-12 bg-[#0f62fe] hover:bg-[#0b51d4] active:bg-[#0943b1] text-white font-semibold text-sm rounded-2xl flex items-center justify-center space-x-2 shadow-lg shadow-blue-500/20 active:scale-[0.99] transition-all"
         >
           <Copy size={16} />
-          <span>Usar esta plantilla</span>
+          <span>Usar esta lista</span>
         </button>
       </div>
     </div>

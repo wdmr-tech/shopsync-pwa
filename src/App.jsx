@@ -62,6 +62,7 @@ function App() {
   const [bottomSheet, setBottomSheet] = useState(null); // null | 'addProduct'
   const [listToEdit, setListToEdit] = useState(null); // null | list object
   const [selectedTemplate, setSelectedTemplate] = useState(null); // null | template object
+  const [listToClone, setListToClone] = useState(null); // null | template object to clone
 
   // Estado del Splash Screen
   const [showSplash, setShowSplash] = useState(true);
@@ -75,9 +76,13 @@ function App() {
   const [listDate, setListDate] = useState('');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
-  // Sincronizar estados del formulario al seleccionar una lista para editar o crear
+  // Sincronizar estados del formulario al seleccionar una lista para editar, crear o clonar
   useEffect(() => {
-    if (listToEdit && listToEdit.id) {
+    if (listToClone) {
+      setNewListName(listToClone.name || '');
+      setNewListEmoji(listToClone.emoji || '🛒');
+      setListDate('');
+    } else if (listToEdit && listToEdit.id) {
       setNewListName(listToEdit.name || '');
       setNewListEmoji(listToEdit.emoji || '🛒');
       setListDate(listToEdit.plannedDate || listToEdit.date || '');
@@ -86,7 +91,7 @@ function App() {
       setNewListEmoji('🛒');
       setListDate('');
     }
-  }, [listToEdit]);
+  }, [listToClone, listToEdit]);
   
   // Formulario de creación de ítems y estado de revelar campos opcionales
   const [productName, setProductName] = useState('');
@@ -147,9 +152,16 @@ function App() {
         });
         setListToEdit(null);
       } else {
-        const templateItems = listToEdit?.templateItems || [];
+        const templateItems = listToClone
+          ? listToClone.items.map(item => ({
+              name: item.name,
+              quantity: formatQuantityText(item.quantity, item.unit)
+            }))
+          : (listToEdit?.templateItems || []);
+
         const newList = await addList(newListName.trim(), newListEmoji, listDate, templateItems);
         setListToEdit(null);
+        setListToClone(null);
         setSelectedTemplate(null); // Cerrar el detalle de la plantilla si estaba abierto
         // Excelente UX: Navega directamente a la lista recién creada
         setSelectedListId(newList.id);
@@ -277,15 +289,7 @@ function App() {
                 template={selectedTemplate}
                 onBack={() => setSelectedTemplate(null)}
                 onUseTemplate={(template) => {
-                  setListToEdit({
-                    name: template.name,
-                    emoji: template.emoji,
-                    plannedDate: '',
-                    templateItems: template.items.map(item => ({
-                      name: item.name,
-                      quantity: formatQuantityText(item.quantity, item.unit)
-                    }))
-                  });
+                  setListToClone(template);
                 }}
               />
             ) : (
@@ -307,17 +311,18 @@ function App() {
         <AnimatePresence>
           
           {/* BottomSheet: Nueva Lista */}
-          {listToEdit !== null && (
+          {(listToEdit !== null || listToClone !== null) && (
             <BottomSheet
               isOpen={true}
               onClose={() => {
                 setListToEdit(null);
+                setListToClone(null);
                 setNewListName('');
                 setNewListEmoji('🛒');
                 setListDate('');
                 setShowEmojiPicker(false);
               }}
-              title={listToEdit.id ? "Editar Lista" : "Crear Nueva Lista"}
+              title={listToClone ? 'GUARDAR LISTA' : listToEdit?.id ? 'EDITAR LISTA' : 'CREAR NUEVA LISTA'}
             >
               <form onSubmit={handleSaveList} className="space-y-4 px-1 pt-1 pb-4">
                 {/* 1. Nombre de la lista */}
@@ -458,7 +463,7 @@ function App() {
                       : 'bg-[#0f62fe] text-white cursor-pointer hover:bg-blue-700 shadow-lg shadow-blue-500/20 active:scale-[0.99]'
                   }`}
                 >
-                  <span>Guardar Lista</span>
+                  <span>{listToClone ? 'Confirmar' : 'Guardar Lista'}</span>
                 </button>
               </form>
             </BottomSheet>
