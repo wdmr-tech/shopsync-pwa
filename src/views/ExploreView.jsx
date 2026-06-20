@@ -17,6 +17,11 @@ export function ExploreView({ onSelectTemplate }) {
     return matchesCategory && matchesQuery;
   });
 
+  const getCountForExploreTab = (categoryName) => {
+    if (categoryName === 'Todas') return COMMUNITY_LISTS.length;
+    return COMMUNITY_LISTS.filter(list => list.category === categoryName).length;
+  };
+
   return (
     <div className="flex flex-col h-full relative">
       {/* Scrollbar vertical minimalista para el listado */}
@@ -56,13 +61,18 @@ export function ExploreView({ onSelectTemplate }) {
             <button
               key={category}
               onClick={() => setActiveFilter(category)}
-              className={`shrink-0 px-4 py-2 rounded-full text-xs font-medium whitespace-nowrap transition-colors flex items-center justify-center ${
+              className={`shrink-0 px-4 py-2 rounded-full text-xs font-medium whitespace-nowrap transition-colors flex items-center justify-center gap-2 ${
                 isActive
                   ? 'bg-blue-100 text-[#0f62fe]'
                   : 'bg-gray-100 text-gray-600'
               }`}
             >
               <span>{category}</span>
+              <span className={`w-5 h-5 flex items-center justify-center rounded-full text-[10px] font-bold transition-colors ${
+                isActive ? 'bg-[#0f62fe]/10 text-[#0f62fe]' : 'bg-gray-200 text-gray-500'
+              }`}>
+                {getCountForExploreTab(category)}
+              </span>
             </button>
           );
         })}
@@ -100,8 +110,8 @@ export function ExploreView({ onSelectTemplate }) {
                   className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm flex items-start gap-3 hover:border-gray-200 transition-colors select-none cursor-pointer active:scale-[0.99]"
                 >
                   {/* Emoji */}
-                  <div className="w-12 h-12 shrink-0 bg-slate-50 rounded-xl flex items-center justify-center text-3xl select-none">
-                    {list.emoji}
+                  <div className="w-12 h-12 shrink-0 bg-slate-50 rounded-xl flex items-center justify-center select-none">
+                    <span className="text-3xl leading-none flex items-center">{list.emoji}</span>
                   </div>
 
                   {/* Detalles */}
