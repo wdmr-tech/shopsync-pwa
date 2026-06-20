@@ -51,9 +51,9 @@ export function useLists() {
   }, []);
 
   // Recalcular stats de una lista específica (llamar tras toggle/add/remove de ítem)
-  const refreshListStats = useCallback(async (listId) => {
+  const refreshListStats = useCallback(async (listId, customItems) => {
     try {
-      const items = await db.getItemsByListId(listId);
+      const items = customItems || await db.getItemsByListId(listId);
       const total = items.length;
       const completed = items.filter((i) => i.completed).length;
       const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
@@ -68,6 +68,9 @@ export function useLists() {
           } else if (total > 0) {
             if (completed === total) status = 'Completada';
             else if (completed > 0) status = 'En progreso';
+            else status = 'Pendiente';
+          } else {
+            status = 'Pendiente';
           }
 
           return {

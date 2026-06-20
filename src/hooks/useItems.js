@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { db } from '../services/db';
 
-export function useItems(listId) {
+export function useItems(listId, refreshListStats = null) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -50,78 +50,106 @@ export function useItems(listId) {
     if (!listId) return;
     try {
       const newItem = await db.addItem(listId, name, quantity);
-      setItems((prevItems) => [...prevItems, newItem]);
+      const newItems = [...items, newItem];
+      setItems(newItems);
+      if (typeof refreshListStats === 'function') {
+        refreshListStats(listId, newItems);
+      }
       return newItem;
     } catch (err) {
       console.error('Error al crear ítem:', err);
       throw new Error('No se pudo crear el producto.');
     }
-  }, [listId]);
+  }, [listId, items, refreshListStats]);
 
   // Alternar estado de completado (con actualización optimista)
   const toggleItem = useCallback(async (itemId, currentStatus) => {
-    // Actualización optimista para respuesta táctil instantánea
-    setItems((prevItems) =>
-      prevItems.map((item) =>
-        item.id === itemId ? { ...item, completed: !currentStatus } : item
-      )
+    const newItems = items.map((item) =>
+      item.id === itemId ? { ...item, completed: !currentStatus } : item
     );
+    setItems(newItems);
+    if (typeof refreshListStats === 'function') {
+      refreshListStats(listId, newItems);
+    }
 
     try {
       await db.toggleItemStatus(itemId, !currentStatus);
     } catch (err) {
       console.error('Error al actualizar ítem en storage:', err);
       // Revertir en caso de error
-      setItems((prevItems) =>
-        prevItems.map((item) =>
-          item.id === itemId ? { ...item, completed: currentStatus } : item
-        )
-      );
+      setItems(items);
+      if (typeof refreshListStats === 'function') {
+        refreshListStats(listId, items);
+      }
       throw new Error('No se pudo actualizar el estado del producto.');
     }
-  }, []);
+  }, [listId, items, refreshListStats]);
 
   // Eliminar un ítem
   const removeItem = useCallback(async (itemId) => {
+    const newItems = items.filter((item) => item.id !== itemId);
+    setItems(newItems);
+    if (typeof refreshListStats === 'function') {
+      refreshListStats(listId, newItems);
+    }
+
     try {
       await db.deleteItem(itemId);
-      setItems((prevItems) => prevItems.filter((item) => item.id !== itemId));
     } catch (err) {
       console.error('Error al eliminar ítem:', err);
+      // Revertir en caso de error
+      setItems(items);
+      if (typeof refreshListStats === 'function') {
+        refreshListStats(listId, items);
+      }
       throw new Error('No se pudo eliminar el producto.');
     }
-  }, []);
+  }, [listId, items, refreshListStats]);
 
   // Eliminar todos los ítems completados
   const clearCompleted = useCallback(async () => {
     if (!listId) return;
+    const newItems = items.filter((item) => !item.completed);
+    setItems(newItems);
+    if (typeof refreshListStats === 'function') {
+      refreshListStats(listId, newItems);
+    }
+
     try {
       await db.clearCompletedItems(listId);
-      setItems((prevItems) => prevItems.filter((item) => !item.completed));
     } catch (err) {
       console.error('Error al limpiar completados:', err);
+      // Revertir en caso de error
+      setItems(items);
+      if (typeof refreshListStats === 'function') {
+        refreshListStats(listId, items);
+      }
       throw new Error('No se pudieron eliminar los ítems completados.');
     }
-  }, [listId]);
+  }, [listId, items, refreshListStats]);
 
   // Actualizar un ítem (ej. para cambiar su nombre o cantidad)
   const updateItem = useCallback(async (itemId, updates) => {
-    // Actualización optimista para cambios fluidos
-    setItems((prevItems) =>
-      prevItems.map((item) =>
-        item.id === itemId ? { ...item, ...updates } : item
-      )
+    const newItems = items.map((item) =>
+      item.id === itemId ? { ...item, ...updates } : item
     );
+    setItems(newItems);
+    if (typeof refreshListStats === 'function') {
+      refreshListStats(listId, newItems);
+    }
 
     try {
       await db.updateItem(itemId, updates);
     } catch (err) {
       console.error('Error al actualizar ítem:', err);
-      // Recargar desde el storage en caso de error para revertir el cambio optimista
-      fetchItems();
+      // Revertir en caso de error
+      setItems(items);
+      if (typeof refreshListStats === 'function') {
+        refreshListStats(listId, items);
+      }
       throw new Error('No se pudo actualizar el producto.');
     }
-  }, [fetchItems]);
+  }, [listId, items, refreshListStats]);
 
   // Cálculo matemático del progreso
   const stats = useMemo(() => {

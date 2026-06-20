@@ -200,12 +200,12 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
           <button 
             onClick={() => {
               try {
-                // 1. Calculamos el estado actual si setActiveTab está disponible
+                // 1. Calculamos el estado actual usando la variable 'items' fresca del componente
+                const currentStatus = getListStatus({ ...list, items: items });
+                const tabToSelect = currentStatus === 'en progreso' ? 'En progreso' 
+                                  : currentStatus === 'completada' ? 'Completadas' 
+                                  : 'Pendientes';
                 if (typeof setActiveTab === 'function') {
-                  const currentStatus = getListStatus({ ...list, items });
-                  const tabToSelect = currentStatus === 'en progreso' ? 'En progreso' 
-                                    : currentStatus === 'completada' ? 'Completadas' 
-                                    : 'Pendientes';
                   setActiveTab(tabToSelect);
                 }
                 
@@ -217,7 +217,6 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
                 }
               } catch (error) {
                 console.error("Error al volver:", error);
-                // Fallback de emergencia
                 if (typeof onBack === 'function') onBack();
               }
             }}
