@@ -57,7 +57,7 @@ function App() {
   const { lists, loading: listsLoading, addList, removeList, reorderLists, updateList, refreshListStats } = useLists();
   
   // 1. Estados de Navegación y Vistas
-  const [currentTab, setCurrentTab] = useState('lists'); // 'lists' | 'explore' | 'history' | 'settings'
+  const [currentTab, setCurrentTab] = useState('lists'); // 'lists' | 'explore' | 'settings'
   const [showCustomDatePicker, setShowCustomDatePicker] = useState(false);
   const [currentView, setCurrentView] = useState('home'); // 'home' | 'activeList'
   const [selectedListId, setSelectedListId] = useState(null);

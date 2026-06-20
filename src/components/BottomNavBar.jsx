@@ -1,11 +1,10 @@
-import { ListTodo, Compass, History, Settings } from 'lucide-react';
+import { ListTodo, Compass, Settings } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export function BottomNavBar({ currentTab, setCurrentTab }) {
   const tabs = [
     { id: 'lists', label: 'Mis Listas', icon: ListTodo },
     { id: 'explore', label: 'Explorar', icon: Compass },
-    { id: 'history', label: 'Historial', icon: History },
     { id: 'settings', label: 'Ajustes', icon: Settings },
   ];
 
@@ -27,7 +26,7 @@ export function BottomNavBar({ currentTab, setCurrentTab }) {
               whileTap={{ scale: 0.92 }}
               className="flex flex-col items-center"
             >
-              <Icon size={20} className="mb-0.5" />
+              <Icon size={22} strokeWidth={2} className="mb-0.5" />
               <span className="text-[10px] font-semibold">
                 {tab.label}
               </span>

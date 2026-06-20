@@ -64,9 +64,13 @@ export function SettingsView() {
         </div>
 
         {/* Info / Version */}
-        <div className="text-center pt-8">
-          <p className="text-xs font-semibold text-slate-400">ShopSync v1.2.0</p>
-          <p className="text-[10px] text-slate-300 mt-1">Desarrollado con ❤️</p>
+        <div className="mt-8 flex flex-col items-center justify-center text-center">
+          <p className="text-sm font-semibold text-gray-400 mb-1">
+            ShopSync v1.2.0
+          </p>
+          <p className="text-[11px] text-gray-400/80 px-8">
+            Desarrollado por Wladimir Acevedo para módulo Diseño UX/UI + IA - 2026
+          </p>
         </div>
       </div>
     </div>
