@@ -8,10 +8,12 @@ import {
   ShoppingBag,
   Calendar,
   Edit2,
-  ArrowRight
+  ArrowRight,
+  Mic,
+  Loader2
 } from 'lucide-react';
 import { motion, AnimatePresence, useAnimation } from 'framer-motion';
-import { getCategoryForProduct, formatListDate, getListStatus } from '../utils/productDictionary';
+import { getCategoryForProduct, formatListDate, getListStatus, formatQuantityText } from '../utils/productDictionary';
 
 const ItemCard = ({ item, toggleItem, setItemToDelete, setItemToEdit }) => {
   const controls = useAnimation();
@@ -108,6 +110,13 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
 
   const [itemToDelete, setItemToDelete] = useState(null);
 
+  // Estados de dictado de voz (Hold-to-Talk)
+  const [isListening, setIsListening] = useState(false);
+  const [isProcessingVoice, setIsProcessingVoice] = useState(false);
+  const [transcript, setTranscript] = useState('');
+  const recognitionRef = useRef(null);       // Instancia reutilizable de SpeechRecognition
+  const finalTranscriptRef = useRef('');     // Buffer acumulado fuera del closure de React
+
   // Estados de finalización de lista
   const [isListCompleted, setIsListCompleted] = useState(() => {
     return list?.status === 'Completada' || list?.status === 'completada' || list?.isCompleted === true;
@@ -193,6 +202,137 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
       await onCompleteList();
     }
   };
+
+  // ─── Lógica de Dictado de Voz (Hold-to-Talk) ────────────────────────────────
+
+  const processVoiceInput = async (spokenText) => {
+    if (!spokenText || !spokenText.trim()) return;
+
+    // 1. Dividir por "y", "e", comas o puntos
+    // Ej: "dos manzanas, un kilo de pan y leche" → ["dos manzanas", "un kilo de pan", "leche"]
+    const rawItems = spokenText
+      .toLowerCase()
+      .split(/ y |,| e |\./g)
+      .map((i) => i.trim())
+      .filter((i) => i.length > 1);
+
+    const numberWords = { un: 1, una: 1, uno: 1, dos: 2, tres: 3, cuatro: 4, cinco: 5, seis: 6, siete: 7, ocho: 8, nueve: 9, diez: 10 };
+    const knownUnits = ['kilo', 'kilos', 'kg', 'litro', 'litros', 'lt', 'gramo', 'gramos', 'gr', 'caja', 'cajas', 'paquete', 'paquetes', 'bolsa', 'bolsas', 'unidad', 'unidades', 'lata', 'latas', 'botella', 'botellas', 'docena', 'docenas'];
+
+    for (const rawItem of rawItems) {
+      const words = rawItem.split(' ');
+      let quantity = '';
+      let unit = '';
+      let nameWords = [...words];
+
+      const firstWord = words[0];
+      const parsedNum = !isNaN(firstWord) ? parseFloat(firstWord) : numberWords[firstWord];
+
+      if (parsedNum !== undefined) {
+        quantity = parsedNum;
+        nameWords = words.slice(1);
+
+        const secondWord = nameWords[0] || '';
+        if (knownUnits.includes(secondWord)) {
+          unit = secondWord;
+          nameWords = nameWords.slice(1);
+          if (nameWords[0] === 'de' || nameWords[0] === 'del') {
+            nameWords = nameWords.slice(1);
+          }
+        }
+      }
+
+      const name = nameWords.join(' ').trim();
+      if (!name) continue;
+
+      const quantityString = formatQuantityText(quantity, unit);
+      await itemsState.createItem(name, quantityString);
+    }
+  };
+
+  // Inicializar SpeechRecognition UNA SOLA VEZ al montar el componente
+  useEffect(() => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) return;
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'es-ES';
+    recognition.continuous = true;      // Escucha mientras mantienes presionado
+    recognition.interimResults = true;  // Muestra resultados parciales en tiempo real
+
+    recognition.onresult = (event) => {
+      let interimTranscript = '';
+      // Recorre sólo los resultados nuevos desde el último evento
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const result = event.results[i];
+        if (result.isFinal) {
+          // Los confirmados van al buffer por referencia (evita problema del closure)
+          finalTranscriptRef.current += result[0].transcript + ' ';
+        } else {
+          interimTranscript += result[0].transcript;
+        }
+      }
+      // Actualizamos el estado para mostrar el texto en UI mientras habla
+      setTranscript(finalTranscriptRef.current + interimTranscript);
+    };
+
+    recognition.onerror = (event) => {
+      // 'aborted' es el error normal cuando se llama a .stop() manualmente
+      if (event.error !== 'aborted') {
+        console.error('Error en reconocimiento de voz:', event.error);
+      }
+      setIsListening(false);
+    };
+
+    recognition.onend = () => setIsListening(false);
+
+    recognitionRef.current = recognition;
+
+    // Cleanup: asegura que el reconocimiento se detenga al desmontar la vista
+    return () => {
+      try { recognition.stop(); } catch (_) {}
+    };
+  }, []);
+
+  const handleMicPointerDown = (e) => {
+    e.preventDefault();
+    if (!recognitionRef.current) {
+      alert('Tu navegador no soporta el dictado por voz. Intenta usar Chrome o Safari actualizados.');
+      return;
+    }
+    // Resetear buffer y estado antes de cada nueva grabación
+    finalTranscriptRef.current = '';
+    setTranscript('');
+    setIsListening(true);
+    try {
+      recognitionRef.current.start();
+    } catch (err) {
+      // Puede lanzar si ya estaba activo; lo ignoramos con seguridad
+      console.warn('Recognition start error (ignorado):', err.message);
+    }
+  };
+
+  const handleMicPointerUp = (e) => {
+    e.preventDefault();
+    if (!isListening) return;
+    setIsListening(false);
+    try {
+      recognitionRef.current?.stop();
+    } catch (_) {}
+
+    setIsProcessingVoice(true);
+    // Pequeño delay para que el evento onresult final llegue antes de procesar
+    setTimeout(() => {
+      const captured = finalTranscriptRef.current.trim();
+      processVoiceInput(captured).finally(() => {
+        setIsProcessingVoice(false);
+        // Mostrar brevemente el transcript final en el dock
+        setTranscript(captured);
+      });
+    }, 500);
+  };
+
+  // ─── Fin Dictado de Voz ──────────────────────────────────────────────────────
 
   // 1. Agrupar items
   const groupedItems = items.reduce((acc, item) => {
@@ -607,15 +747,68 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
 
 
 
-      {/* Dock Inferior para el CTA */}
+      {/* ── Overlay "Procesando audio" ─────────────────────────────────────── */}
+      <AnimatePresence>
+        {isProcessingVoice && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            transition={{ duration: 0.18 }}
+            className="absolute inset-0 z-50 flex items-center justify-center bg-white/60 backdrop-blur-sm pointer-events-none"
+          >
+            <div className="bg-gray-900 text-white px-6 py-3.5 rounded-2xl flex items-center gap-3 shadow-2xl">
+              <Loader2 className="animate-spin shrink-0" size={18} />
+              <span className="font-semibold text-sm tracking-wide">Procesando audio...</span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Dock Inferior ─────────────────────────────────────────────────────── */}
       <div className="absolute bottom-0 left-0 w-full p-5 bg-white border-t border-slate-100 z-10 pb-safe">
-        <button
-          onClick={onAddProductClick}
-          className="w-full h-12 bg-[#0f62fe] hover:bg-[#0b51d4] active:bg-[#0943b1] text-white font-semibold text-sm rounded-2xl flex items-center justify-center space-x-2 shadow-lg shadow-blue-500/20 active:scale-[0.99] transition-all"
-        >
-          <Plus size={16} />
-          <span>Agregar Producto</span>
-        </button>
+        <div className="flex gap-2 w-full items-center">
+
+          {/* Botón principal Agregar Producto */}
+          <button
+            onClick={onAddProductClick}
+            className="flex-1 h-12 bg-[#0f62fe] hover:bg-[#0b51d4] active:bg-[#0943b1] text-white font-semibold text-sm rounded-2xl flex items-center justify-center space-x-2 shadow-lg shadow-blue-500/20 active:scale-[0.99] transition-all"
+          >
+            <Plus size={16} />
+            <span>Agregar Producto</span>
+          </button>
+
+          {/* Botón Hold-to-Talk (mantener presionado para hablar) */}
+          <button
+            type="button"
+            onPointerDown={handleMicPointerDown}
+            onPointerUp={handleMicPointerUp}
+            onPointerLeave={handleMicPointerUp}  /* si el dedo sale del botón, también para */
+            aria-label={isListening ? 'Escuchando… suelta para guardar' : 'Mantén presionado para dictar'}
+            title={isListening ? 'Suelta para guardar' : 'Mantén presionado para dictar'}
+            className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-150 shrink-0 touch-none select-none ${
+              isListening
+                ? 'bg-red-500 text-white scale-110 shadow-lg shadow-red-400/40'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200 active:bg-gray-300'
+            }`}
+          >
+            <Mic size={20} />
+          </button>
+        </div>
+
+        {/* Feedback del transcript (aparece debajo del dock cuando termina) */}
+        <AnimatePresence>
+          {transcript && !isListening && !isProcessingVoice && (
+            <motion.p
+              initial={{ opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className="mt-2 text-xs text-gray-400 text-center truncate px-2"
+            >
+              🎙️ &ldquo;{transcript}&rdquo;
+            </motion.p>
+          )}
+        </AnimatePresence>
       </div>
 
     </div>
