@@ -1,3 +1,4 @@
+import { useState, useEffect, useRef } from 'react';
 import { Plus, GripVertical, Trash2, AlertTriangle, Calendar, Bell, X } from 'lucide-react';
 import { motion, AnimatePresence, useAnimation, Reorder, useDragControls } from 'framer-motion';
 import { getListStatus } from '../utils/productDictionary';
@@ -362,33 +363,28 @@ export function HomeView({ lists, loading, removeList, onSelectList, onCreateLis
                 <div>
                   <h4 className="text-xs font-bold text-red-500 uppercase tracking-wider mb-2">Atrasadas</h4>
                   {reminders.overdue.map(l => (
-                    <div 
-                      key={l.id} 
-                      className="bg-red-50 rounded-xl p-3 mb-2 flex items-center justify-between cursor-pointer hover:bg-red-100 transition-colors animate-fadeIn"
-                      onClick={() => { setShowRemindersModal(false); onSelectList(l.id); }}
-                    >
-                      <div className="flex items-center gap-3 min-w-0">
-                        <span className="text-2xl shrink-0 select-none">{l.emoji}</span>
-                        <div className="min-w-0">
-                          <p className="text-sm font-semibold text-slate-800 truncate">{l.name}</p>
-                          <p className="text-xs text-red-500 font-medium">Atrasada</p>
+                    <div key={l.id} className="flex items-center justify-between w-full p-3 bg-red-50 rounded-xl mb-2">
+                      <button 
+                        onClick={() => { setShowRemindersModal(false); onSelectList(l.id); }}
+                        className="flex items-center gap-3 flex-1 text-left animate-none"
+                      >
+                        <span className="text-2xl shrink-0">{l.emoji}</span>
+                        <div>
+                          <p className="text-sm font-semibold text-slate-800 leading-snug">{l.name}</p>
+                          <p className="text-xs text-red-500 font-medium leading-none mt-0.5">Atrasada</p>
                         </div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={async (e) => {
+                      </button>
+                      <button 
+                        onClick={(e) => {
                           e.stopPropagation();
-                          try {
-                            await updateList(l.id, { reminder: false });
-                            if (showToast) showToast('Recordatorio desactivado');
-                          } catch (err) {
-                            console.error('Error al desactivar recordatorio:', err);
+                          if (typeof updateList === 'function') {
+                            updateList(l.id, { reminder: false });
                           }
                         }}
-                        className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-100/50 rounded-lg transition-colors cursor-pointer shrink-0"
-                        title="Desactivar recordatorio"
+                        className="p-2 text-red-400 hover:text-red-600 hover:bg-red-100 rounded-lg transition-colors ml-2 shrink-0"
+                        aria-label="Marcar como visto"
                       >
-                        <X size={15} />
+                        <X size={16} />
                       </button>
                     </div>
                   ))}
@@ -399,33 +395,28 @@ export function HomeView({ lists, loading, removeList, onSelectList, onCreateLis
                 <div>
                   <h4 className="text-xs font-bold text-[#0f62fe] uppercase tracking-wider mb-2">Para Hoy</h4>
                   {reminders.today.map(l => (
-                    <div 
-                      key={l.id} 
-                      className="bg-blue-50 rounded-xl p-3 mb-2 flex items-center justify-between cursor-pointer hover:bg-blue-100 transition-colors animate-fadeIn"
-                      onClick={() => { setShowRemindersModal(false); onSelectList(l.id); }}
-                    >
-                      <div className="flex items-center gap-3 min-w-0">
-                        <span className="text-2xl shrink-0 select-none">{l.emoji}</span>
-                        <div className="min-w-0">
-                          <p className="text-sm font-semibold text-slate-800 truncate">{l.name}</p>
-                          <p className="text-xs text-blue-600 font-medium">¡Hoy es el día!</p>
+                    <div key={l.id} className="flex items-center justify-between w-full p-3 bg-blue-50 rounded-xl mb-2">
+                      <button 
+                        onClick={() => { setShowRemindersModal(false); onSelectList(l.id); }}
+                        className="flex items-center gap-3 flex-1 text-left animate-none"
+                      >
+                        <span className="text-2xl shrink-0">{l.emoji}</span>
+                        <div>
+                          <p className="text-sm font-semibold text-slate-800 leading-snug">{l.name}</p>
+                          <p className="text-xs text-blue-600 font-medium leading-none mt-0.5">¡Hoy es el día!</p>
                         </div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={async (e) => {
+                      </button>
+                      <button 
+                        onClick={(e) => {
                           e.stopPropagation();
-                          try {
-                            await updateList(l.id, { reminder: false });
-                            if (showToast) showToast('Recordatorio desactivado');
-                          } catch (err) {
-                            console.error('Error al desactivar recordatorio:', err);
+                          if (typeof updateList === 'function') {
+                            updateList(l.id, { reminder: false });
                           }
                         }}
-                        className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-100/50 rounded-lg transition-colors cursor-pointer shrink-0"
-                        title="Desactivar recordatorio"
+                        className="p-2 text-blue-400 hover:text-blue-600 hover:bg-blue-100 rounded-lg transition-colors ml-2 shrink-0"
+                        aria-label="Marcar como visto"
                       >
-                        <X size={15} />
+                        <X size={16} />
                       </button>
                     </div>
                   ))}
@@ -436,33 +427,28 @@ export function HomeView({ lists, loading, removeList, onSelectList, onCreateLis
                 <div>
                   <h4 className="text-xs font-bold text-orange-500 uppercase tracking-wider mb-2">Mañana</h4>
                   {reminders.tomorrow.map(l => (
-                    <div 
-                      key={l.id} 
-                      className="bg-orange-50 rounded-xl p-3 mb-2 flex items-center justify-between cursor-pointer hover:bg-orange-100 transition-colors animate-fadeIn"
-                      onClick={() => { setShowRemindersModal(false); onSelectList(l.id); }}
-                    >
-                      <div className="flex items-center gap-3 min-w-0">
-                        <span className="text-2xl shrink-0 select-none">{l.emoji}</span>
-                        <div className="min-w-0">
-                          <p className="text-sm font-semibold text-slate-800 truncate">{l.name}</p>
-                          <p className="text-xs text-orange-600 font-medium">Mañana</p>
+                    <div key={l.id} className="flex items-center justify-between w-full p-3 bg-orange-50 rounded-xl mb-2">
+                      <button 
+                        onClick={() => { setShowRemindersModal(false); onSelectList(l.id); }}
+                        className="flex items-center gap-3 flex-1 text-left animate-none"
+                      >
+                        <span className="text-2xl shrink-0">{l.emoji}</span>
+                        <div>
+                          <p className="text-sm font-semibold text-slate-800 leading-snug">{l.name}</p>
+                          <p className="text-xs text-orange-600 font-medium leading-none mt-0.5">Mañana</p>
                         </div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={async (e) => {
+                      </button>
+                      <button 
+                        onClick={(e) => {
                           e.stopPropagation();
-                          try {
-                            await updateList(l.id, { reminder: false });
-                            if (showToast) showToast('Recordatorio desactivado');
-                          } catch (err) {
-                            console.error('Error al desactivar recordatorio:', err);
+                          if (typeof updateList === 'function') {
+                            updateList(l.id, { reminder: false });
                           }
                         }}
-                        className="p-1.5 text-gray-400 hover:text-orange-600 hover:bg-orange-100/50 rounded-lg transition-colors cursor-pointer shrink-0"
-                        title="Desactivar recordatorio"
+                        className="p-2 text-orange-400 hover:text-orange-600 hover:bg-orange-100 rounded-lg transition-colors ml-2 shrink-0"
+                        aria-label="Marcar como visto"
                       >
-                        <X size={15} />
+                        <X size={16} />
                       </button>
                     </div>
                   ))}
@@ -616,7 +602,6 @@ export function HomeView({ lists, loading, removeList, onSelectList, onCreateLis
           >
             <AnimatePresence mode="popLayout">
               {filteredLists.map((list) => {
-                if (!list) return null; // Protección anti-crash
                 return (
                   <DraggableListCard
                     key={`${activeFilter}-${list.id}`}

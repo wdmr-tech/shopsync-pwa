@@ -12,9 +12,7 @@ import {
   Copy,
   Globe,
   Bell,
-  MoreVertical,
-  Mic,
-  Loader2
+  MoreVertical
 } from 'lucide-react';
 import { motion, AnimatePresence, useAnimation } from 'framer-motion';
 import { getCategoryForProduct, formatListDate, getListStatus, formatQuantityText } from '../utils/productDictionary';
@@ -132,6 +130,8 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
   const [showShareModal, setShowShareModal] = useState(false);
   const [shareDescription, setShareDescription] = useState('');
   const [shareCategory, setShareCategory] = useState('Recetas');
+
+  // Estado para menú kebab
   const [showMenu, setShowMenu] = useState(false);
 
 
@@ -163,7 +163,39 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
     itemsRef.current = items;
   }, [list, items]);
 
-  if (!list) return null;
+  // Interceptar el botón de atrás físico / Hardware Back Button
+  useEffect(() => {
+    // 1. Al montar el componente, añadimos un estado al historial del navegador
+    window.history.pushState({ isInsideList: true }, '');
+
+    // 2. Definimos qué hacer cuando el usuario presiona "Atrás" (botón físico o gesto de borde del SO)
+    const handlePopState = (event) => {
+      // Evita que el navegador cierre la PWA
+      event.preventDefault(); 
+      
+      // Ejecutamos nuestra lógica de salir de la lista
+      try {
+        if (typeof setActiveTab === 'function') {
+          const currentStatus = getListStatus({ ...listRef.current, items: itemsRef.current });
+          const tabToSelect = currentStatus === 'en progreso' ? 'En progreso' 
+                            : currentStatus === 'completada' ? 'Completadas' 
+                            : 'Pendientes';
+          setActiveTab(tabToSelect);
+        }
+        if (typeof onBack === 'function') onBack();
+      } catch (err) {
+        if (typeof onBack === 'function') onBack();
+      }
+    };
+
+    // 3. Escuchamos el evento 'popstate' que lanza el botón Atrás
+    window.addEventListener('popstate', handlePopState);
+
+    // 4. Limpieza al desmontar el componente (SOLO remover el listener, sin window.history.back())
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, []);
 
   const totalItems = items?.length || 0;
   const completedItems = items?.filter(item => item.completed)?.length || 0;
@@ -252,19 +284,7 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
 
         if (isRightSwipe) {
           if (typeof triggerHaptic === 'function') triggerHaptic(30);
-          
-          try {
-            if (typeof setActiveTab === 'function') {
-              const currentStatus = getListStatus({ ...listRef.current, items: itemsRef.current });
-              const tabToSelect = currentStatus === 'en progreso' ? 'En progreso' 
-                                : currentStatus === 'completada' ? 'Completadas' 
-                                : 'Pendientes';
-              setActiveTab(tabToSelect);
-            }
-            if (typeof onBack === 'function') onBack();
-          } catch (err) {
-            if (typeof onBack === 'function') onBack();
-          }
+          window.history.back(); // Esto disparará el popstate y cerrará la vista
         }
       }}
     >
@@ -288,42 +308,53 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
       </AnimatePresence>
       
       {/* Cabecera Móvil (Estática) */}
-      <header className="px-5 py-4 border-b border-slate-100 bg-white flex items-center justify-between shrink-0">
-        <div className="flex items-center space-x-3 min-w-0 w-full">
-          {/* Botón Retroceso */}
-          <button 
-            onClick={() => {
-              try {
-                // 1. Sincronizar el filtro de la Home
-                if (typeof setActiveTab === 'function') {
-                  const currentStatus = getListStatus({ ...listRef.current, items: itemsRef.current });
-                  const tabToSelect = currentStatus === 'en progreso' ? 'En progreso' 
-                                    : currentStatus === 'completada' ? 'Completadas' 
-                                    : 'Pendientes';
-                  setActiveTab(tabToSelect);
-                }
-                // 2. Cerrar la vista
-                if (typeof onBack === 'function') onBack();
-              } catch (err) {
-                if (typeof onBack === 'function') onBack();
-              }
-            }}
-            className="p-2 -ml-2 text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
-          >
-            <ChevronLeft size={24} />
-          </button>
-          
-          {/* Emoji y Título clickable para edición */}
-          <button
-            onClick={() => onEditList && onEditList(list)}
-            className="flex items-center space-x-2 min-w-0 hover:opacity-85 active:opacity-70 transition-opacity text-left cursor-pointer"
-          >
-            <span className="text-2xl shrink-0 select-none">{list?.emoji}</span>
-            <span className="font-bold text-base truncate leading-tight pb-1 text-slate-800 flex items-center gap-1.5 min-w-0">
-              <span className="truncate">{list?.name}</span>
-              <Edit2 size={14} className="text-gray-400 shrink-0" />
-            </span>
-          </button>
+      <header className="px-5 py-4 border-b border-slate-100 bg-white flex items-center justify-between shrink-0 relative">
+        <div className="flex items-center justify-between w-full relative z-30">
+          {/* Izquierda: Volver y Título */}
+          <div className="flex items-center gap-3 overflow-hidden">
+            <button onClick={() => window.history.back()} className="p-2 -ml-2 text-gray-600 hover:bg-gray-100 rounded-full shrink-0">
+              <ChevronLeft size={24} />
+            </button>
+            <button onClick={() => onEditList && onEditList(list)} className="flex items-center gap-2 max-w-[200px] group text-left">
+              <span className="text-2xl leading-none flex items-center shrink-0">{list?.emoji}</span>
+              <h2 className="text-xl font-bold text-gray-800 truncate leading-tight pb-1">{list?.name}</h2>
+              <Edit2 size={14} className="text-gray-400 group-hover:text-[#0f62fe] shrink-0" />
+            </button>
+          </div>
+
+          {/* Derecha: Menú Kebab */}
+          <div className="relative shrink-0">
+            <button 
+              onClick={() => setShowMenu(!showMenu)}
+              className="p-2 text-gray-500 hover:bg-gray-100 rounded-full transition-colors"
+            >
+              <MoreVertical size={20} />
+            </button>
+
+            <AnimatePresence>
+              {showMenu && (
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.95, y: -10 }} 
+                  animate={{ opacity: 1, scale: 1, y: 0 }} 
+                  exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                  className="absolute right-0 top-full mt-1 w-44 bg-white border border-gray-100 rounded-xl shadow-lg py-1.5 z-50 flex flex-col"
+                >
+                  <button 
+                    onClick={() => { setShowMenu(false); if(typeof onDuplicateList === 'function') onDuplicateList({ ...listRef.current, items: itemsRef.current }); }}
+                    className="px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-2 text-left"
+                  >
+                    <Copy size={16} className="text-gray-400" /> Duplicar Lista
+                  </button>
+                  <button 
+                    onClick={() => { setShowMenu(false); setShowShareModal(true); }}
+                    className="px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-2 text-left"
+                  >
+                    <Globe size={16} className="text-[#0f62fe]" /> Publicar
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
       </header>
 
@@ -351,9 +382,9 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
         </div>
 
         {/* Debajo de la barra de progreso */}
-        <div className="flex items-center justify-between mt-3 mb-1.5 relative">
-          {/* Izquierda: Completar */}
-          <div>
+        <div className="flex items-center justify-between mt-3">
+          {/* Izquierda: Botón Completar */}
+          <div className="flex items-center gap-4">
             {!isListCompleted && (
               <button 
                 onClick={() => { setModalType('manual'); setShowCompleteModal(true); }}
@@ -365,8 +396,8 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
             )}
           </div>
           
-          {/* Derecha: Fecha y Menú Kebab */}
-          <div className="flex items-center gap-2">
+          {/* Derecha: Fecha de Compra */}
+          <div>
             {(list?.plannedDate || list?.date) && (
               <button 
                 type="button"
@@ -384,51 +415,6 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
                 <Edit2 size={10} className="text-gray-400 ml-1" />
               </button>
             )}
-
-            <div className="relative">
-              <button 
-                type="button"
-                onClick={() => setShowMenu(!showMenu)}
-                className="p-1.5 text-gray-400 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
-              >
-                <MoreVertical size={18} />
-              </button>
-
-              {/* Menú Desplegable */}
-              <AnimatePresence>
-                {showMenu && (
-                  <motion.div 
-                    initial={{ opacity: 0, scale: 0.95, y: -10 }} 
-                    animate={{ opacity: 1, scale: 1, y: 0 }} 
-                    exit={{ opacity: 0, scale: 0.95, y: -10 }}
-                    className="absolute right-0 top-full mt-1 w-40 bg-white border border-gray-100 rounded-xl shadow-lg py-1.5 z-50 flex flex-col animate-fadeIn"
-                  >
-                    <button 
-                      type="button"
-                      onClick={() => { 
-                        setShowMenu(false); 
-                        if (typeof onDuplicateList === 'function') {
-                          onDuplicateList({ ...listRef.current, items: itemsRef.current });
-                        }
-                      }}
-                      className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 text-left cursor-pointer transition-colors"
-                    >
-                      <Copy size={16} className="text-gray-400" /> Duplicar
-                    </button>
-                    <button 
-                      type="button"
-                      onClick={() => { 
-                        setShowMenu(false); 
-                        setShowShareModal(true); 
-                      }}
-                      className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 text-left cursor-pointer transition-colors"
-                    >
-                      <Globe size={16} className="text-[#0f62fe]" /> Publicar
-                    </button>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
           </div>
         </div>
       </div>

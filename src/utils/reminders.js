@@ -16,7 +16,7 @@ export const checkReminders = (lists) => {
     const status = list.stats?.status || list.status;
     const isCompleted = status === 'Completada' || status === 'completada' || list.isCompleted;
     
-    if (isCompleted || list.reminder !== true || !list.plannedDate) return;
+    if (isCompleted || !list.reminder || !list.plannedDate) return;
 
     const parts = list.plannedDate.split('-');
     if (parts.length === 3) {

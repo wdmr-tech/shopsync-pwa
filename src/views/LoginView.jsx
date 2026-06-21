@@ -113,11 +113,14 @@ export function LoginView({ onLogin }) {
               onClick={() => onLogin('guest', 'Sin cuenta')}
               className="w-full mt-4 text-[#0f62fe] font-semibold hover:underline bg-transparent"
             >
-              Acceder sin cuenta
+              Continuar sin cuenta
             </button>
           </form>
         </div>
       </div>
+      <p className="mt-8 text-xs font-semibold text-gray-400">
+        ShopSync v1.2.0
+      </p>
     </div>
   );
 }

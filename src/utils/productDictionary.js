@@ -91,7 +91,7 @@ export const formatListDate = (dateString) => {
 };
 
 export const getListStatus = (list) => {
-  if (!list || !list.items) return 'pendiente'; // Retorno seguro
+  if (!list) return 'pendiente';
 
   // 1. Respetar SOLO si se completó manualmente/oficialmente
   if (list.status === 'completada' || list.status === 'Completada' || list.isCompleted) return 'completada';
