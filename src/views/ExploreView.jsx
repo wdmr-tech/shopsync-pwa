@@ -11,12 +11,12 @@ const CATEGORY_COLORS = {
   'Todas': 'bg-gray-100 text-gray-700'
 };
 
-export function ExploreView({ onSelectTemplate, onCloneTemplate }) {
+export function ExploreView({ onSelectTemplate, onCloneTemplate, communityLists = COMMUNITY_LISTS }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState('Todas');
 
   // Filtrado de listas basado en categoría y query de búsqueda
-  const filteredLists = COMMUNITY_LISTS.filter((list) => {
+  const filteredLists = communityLists.filter((list) => {
     const matchesCategory = activeFilter === 'Todas' || list.category === activeFilter;
     const matchesQuery =
       list.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -26,8 +26,8 @@ export function ExploreView({ onSelectTemplate, onCloneTemplate }) {
   });
 
   const getCountForExploreTab = (categoryName) => {
-    if (categoryName === 'Todas') return COMMUNITY_LISTS.length;
-    return COMMUNITY_LISTS.filter(list => list.category === categoryName).length;
+    if (categoryName === 'Todas') return communityLists.length;
+    return communityLists.filter(list => list.category === categoryName).length;
   };
 
   return (

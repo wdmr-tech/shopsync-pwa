@@ -9,7 +9,8 @@ import {
   Calendar,
   Edit2,
   ArrowRight,
-  Copy
+  Copy,
+  Globe
 } from 'lucide-react';
 import { motion, AnimatePresence, useAnimation } from 'framer-motion';
 import { getCategoryForProduct, formatListDate, getListStatus, formatQuantityText } from '../utils/productDictionary';
@@ -94,7 +95,7 @@ const ItemCard = ({ item, toggleItem, setItemToDelete, setItemToEdit }) => {
   );
 };
 
-export function ActiveListView({ list, onBack, onAddProductClick, itemsState, onCompleteList, updateList, setActiveTab, setItemToEdit, onEditList, showToast, onDuplicateList }) {
+export function ActiveListView({ list, onBack, onAddProductClick, itemsState, onCompleteList, updateList, setActiveTab, setItemToEdit, onEditList, showToast, onDuplicateList, onPublishList }) {
   const {
     items,
     allItems,
@@ -121,6 +122,11 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
   const [showDateModal, setShowDateModal] = useState(false);
   const [tempDate, setTempDate] = useState('');
   const [showDatePicker, setShowDatePicker] = useState(false);
+
+  // Estados para modal de publicación en la comunidad
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [shareDescription, setShareDescription] = useState('');
+  const [shareCategory, setShareCategory] = useState('Recetas');
 
 
   const touchStartX = useRef(null);
@@ -368,6 +374,14 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
             >
               <Copy size={16} />
               Duplicar
+            </button>
+
+            <button 
+              onClick={() => setShowShareModal(true)}
+              className="text-gray-500 hover:text-green-600 font-semibold text-sm tracking-wide active:opacity-70 flex items-center gap-1.5 py-1 transition-colors"
+            >
+              <Globe size={16} />
+              Publicar
             </button>
           </div>
           
@@ -625,6 +639,93 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
                   className="flex-1 h-11 bg-[#0f62fe] hover:bg-blue-700 text-white font-semibold text-sm rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Guardar
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Modal de Publicación en la Comunidad */}
+      <AnimatePresence>
+        {showShareModal && (
+          <>
+            {/* Backdrop de fondo */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowShareModal(false)}
+              className="absolute inset-0 bg-black/45 backdrop-blur-[1px] z-40 cursor-pointer"
+            />
+
+            {/* Contenedor del Dialog */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              className="absolute top-1/2 left-5 right-5 -translate-y-1/2 bg-white rounded-3xl p-6 shadow-2xl z-50 flex flex-col space-y-4 border border-slate-100"
+            >
+              <div className="flex flex-col items-center text-center">
+                <div className="w-12 h-12 bg-green-50 text-green-600 rounded-full flex items-center justify-center mb-4">
+                  <Globe size={24} />
+                </div>
+                <h3 className="text-xl font-bold text-slate-800 mb-2">Publicar en Explorar</h3>
+                <p className="text-gray-500 text-sm mb-4">
+                  Comparte "{list.name}" con la comunidad. Añade una breve descripción.
+                </p>
+              </div>
+
+              <div className="space-y-3.5">
+                <div>
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider pl-1 mb-1 block">Descripción</label>
+                  <input 
+                    type="text" 
+                    value={shareDescription} 
+                    onChange={(e) => setShareDescription(e.target.value)}
+                    placeholder="Ej: Kit de supervivencia para la montaña..."
+                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3.5 text-sm focus:outline-none focus:border-[#0f62fe] focus:bg-white placeholder-slate-400 transition-all font-semibold"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider pl-1 mb-1 block">Categoría</label>
+                  <select 
+                    value={shareCategory} 
+                    onChange={(e) => setShareCategory(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3.5 text-sm focus:outline-none focus:border-[#0f62fe] focus:bg-white transition-all font-semibold outline-none"
+                  >
+                    <option value="Recetas">Recetas</option>
+                    <option value="Viajes">Viajes</option>
+                    <option value="Hogar">Hogar</option>
+                    <option value="Eventos">Eventos</option>
+                    <option value="Otros">Otros</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex gap-3 w-full pt-2">
+                <button 
+                  type="button"
+                  onClick={() => setShowShareModal(false)} 
+                  className="flex-1 h-11 bg-slate-50 hover:bg-slate-100 text-slate-600 font-semibold text-sm rounded-xl transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  type="button"
+                  disabled={!shareDescription.trim()}
+                  onClick={() => {
+                    if (typeof onPublishList === 'function') {
+                      onPublishList({ ...listRef.current, items: itemsRef.current }, shareDescription, shareCategory);
+                    }
+                    setShowShareModal(false);
+                    setShareDescription('');
+                  }} 
+                  className="flex-1 h-11 bg-green-600 hover:bg-green-700 text-white font-semibold text-sm rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Publicar
                 </button>
               </div>
             </motion.div>

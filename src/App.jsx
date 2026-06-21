@@ -14,6 +14,7 @@ import EmojiPicker from 'emoji-picker-react';
 import { CustomDatePickerModal } from './components/CustomDatePickerModal';
 import { SettingsView } from './views/SettingsView';
 import { LoginView } from './views/LoginView';
+import { COMMUNITY_LISTS } from './utils/communityLists';
 
 const parseQuantityString = (qtyStr) => {
   if (!qtyStr) return { quantity: '', unit: '', customUnit: '' };
@@ -89,6 +90,16 @@ function App() {
   const [selectedTemplate, setSelectedTemplate] = useState(null); // null | template object
   const [listToClone, setListToClone] = useState(null); // null | template object to clone
 
+  // Estado de listas de la comunidad para Explorar
+  const [communityLists, setCommunityLists] = useState(() => {
+    try {
+      const stored = localStorage.getItem('shopsync_community_lists');
+      return stored ? JSON.parse(stored) : COMMUNITY_LISTS;
+    } catch {
+      return COMMUNITY_LISTS;
+    }
+  });
+
   // Estado del Splash Screen
   const [showSplash, setShowSplash] = useState(true);
 
@@ -104,6 +115,40 @@ function App() {
       setToastMessage('');
       toastTimeoutRef.current = null;
     }, 3000);
+  };
+
+  const handlePublishList = async (listData, description, category) => {
+    const parsedItems = (listData.items || []).map((item, index) => {
+      const parsed = parseQuantityString(item.quantity);
+      return {
+        id: `pub_i_${Date.now()}_${index}`,
+        name: item.name,
+        quantity: parsed.quantity || item.quantity || '',
+        unit: parsed.unit === 'otro' ? parsed.customUnit : parsed.unit
+      };
+    });
+
+    const publishedList = {
+      id: `pub_${Date.now()}`,
+      name: listData.name,
+      emoji: listData.emoji || '🛒',
+      description: description,
+      category: category,
+      author: `@${currentUser?.name?.toLowerCase().replace(/\s+/g, '_') || 'anonimo'}`,
+      items: parsedItems
+    };
+
+    setCommunityLists((prev) => {
+      const updated = [publishedList, ...prev];
+      try {
+        localStorage.setItem('shopsync_community_lists', JSON.stringify(updated));
+      } catch (err) {
+        console.error('Error al guardar en localStorage:', err);
+      }
+      return updated;
+    });
+
+    showToast('Lista publicada en Explorar');
   };
 
   // Filtro de listas para HomeView
@@ -386,6 +431,7 @@ function App() {
                 onDuplicateList={(listWithItems) => {
                   setListToClone(listWithItems);
                 }}
+                onPublishList={handlePublishList}
               />
             )
           ) : currentTab === 'explore' ? (
@@ -401,6 +447,7 @@ function App() {
               <ExploreView 
                 onSelectTemplate={setSelectedTemplate} 
                 onCloneTemplate={(template) => setListToClone(template)} 
+                communityLists={communityLists}
               />
             )
           ) : currentTab === 'settings' ? (
