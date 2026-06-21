@@ -147,11 +147,17 @@ export const db = {
   // --- OPERACIONES DE ÍTEMS ---
 
   // Obtiene todos los ítems de una lista específica
-  getItemsByListId: async (listId) => {
-    const { data, error } = await supabase
+  getItemsByListId: async (listId, userId) => {
+    let query = supabase
       .from('items')
       .select('*')
-      .eq('list_id', listId)
+      .eq('list_id', listId);
+
+    if (userId) {
+      query = query.eq('user_id', userId);
+    }
+
+    const { data, error } = await query
       .order('created_at', { ascending: true });
 
     if (error) throw error;
@@ -164,13 +170,14 @@ export const db = {
   },
 
   // Agrega un ítem a una lista
-  addItem: async (listId, name, quantity = '') => {
+  addItem: async (listId, name, quantity = '', userId) => {
     const { data, error } = await supabase
       .from('items')
       .insert({
         list_id: listId,
         name,
         quantity,
+        user_id: userId,
       })
       .select()
       .single();
@@ -246,7 +253,7 @@ export const db = {
   },
 
   // Agrega múltiples ítems a una lista en lote (batch)
-  addItems: async (listId, items) => {
+  addItems: async (listId, items, userId) => {
     const { data, error } = await supabase
       .from('items')
       .insert(
@@ -254,7 +261,8 @@ export const db = {
           list_id: listId,
           name: item.name,
           quantity: item.quantity || '',
-          completed: false
+          completed: false,
+          user_id: userId,
         }))
       )
       .select();

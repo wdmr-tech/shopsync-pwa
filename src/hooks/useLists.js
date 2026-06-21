@@ -29,7 +29,7 @@ export function useLists(currentUserId) {
       
       let items = [];
       if (templateItems && templateItems.length > 0) {
-        items = await db.addItems(newList.id, templateItems);
+        items = await db.addItems(newList.id, templateItems, currentUserId);
       }
 
       const total = items.length;

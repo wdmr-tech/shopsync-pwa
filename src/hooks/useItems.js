@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { db } from '../services/db';
 
-export function useItems(listId, refreshListStats = null) {
+export function useItems(listId, refreshListStats = null, currentUserId = null) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -22,14 +22,14 @@ export function useItems(listId, refreshListStats = null) {
 
   // Carga de ítems
   const fetchItems = useCallback(async () => {
-    if (!listId) {
+    if (!listId || !currentUserId) {
       setItems([]);
       setLoading(false);
       return;
     }
     try {
       setLoading(true);
-      const data = await db.getItemsByListId(listId);
+      const data = await db.getItemsByListId(listId, currentUserId);
       setItems(data);
       setError(null);
     } catch (err) {
@@ -38,7 +38,7 @@ export function useItems(listId, refreshListStats = null) {
     } finally {
       setLoading(false);
     }
-  }, [listId]);
+  }, [listId, currentUserId]);
 
   // Cargar ítems al cambiar listId o al refetch
   useEffect(() => {
@@ -47,9 +47,9 @@ export function useItems(listId, refreshListStats = null) {
 
   // Agregar ítem
   const createItem = useCallback(async (name, quantity = '') => {
-    if (!listId) return;
+    if (!listId || !currentUserId) return;
     try {
-      const newItem = await db.addItem(listId, name, quantity);
+      const newItem = await db.addItem(listId, name, quantity, currentUserId);
       const newItems = [...items, newItem];
       setItems(newItems);
       if (typeof refreshListStats === 'function') {
@@ -60,7 +60,7 @@ export function useItems(listId, refreshListStats = null) {
       console.error('Error al crear ítem:', err);
       throw new Error('No se pudo crear el producto.');
     }
-  }, [listId, items, refreshListStats]);
+  }, [listId, items, refreshListStats, currentUserId]);
 
   // Alternar estado de completado (con actualización optimista)
   const toggleItem = useCallback(async (itemId, currentStatus) => {

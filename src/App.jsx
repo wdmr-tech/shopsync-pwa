@@ -201,7 +201,7 @@ function App() {
   }, [bottomSheet, autoStartVoice]);
 
   // Hook para gestionar los items de la lista activa compartida entre la vista y el BottomSheet
-  const activeListItemsState = useItems(selectedListId, refreshListStats);
+  const activeListItemsState = useItems(selectedListId, refreshListStats, currentUser?.id);
 
   // Sincronizar estados del formulario al seleccionar un producto para editar
   useEffect(() => {
