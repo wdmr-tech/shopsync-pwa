@@ -110,10 +110,10 @@ export function LoginView({ onLogin }) {
 
             <button 
               type="button"
-              onClick={() => onLogin('guest', 'Invitado')}
+              onClick={() => onLogin('guest', 'Sin cuenta')}
               className="w-full mt-4 text-[#0f62fe] font-semibold hover:underline bg-transparent"
             >
-              Ingresar como invitado
+              Acceder sin cuenta
             </button>
           </form>
         </div>
