@@ -46,10 +46,11 @@ export function useItems(listId, refreshListStats = null, currentUserId = null) 
   }, [fetchItems]);
 
   // Agregar ítem
-  const createItem = useCallback(async (name, quantity = '') => {
-    if (!listId || !currentUserId) return;
+  const createItem = useCallback(async (name, quantity = '', userId = null) => {
+    const finalUserId = userId || currentUserId;
+    if (!listId || !finalUserId) return;
     try {
-      const newItem = await db.addItem(listId, name, quantity, currentUserId);
+      const newItem = await db.addItem(listId, name, quantity, finalUserId);
       const newItems = [...items, newItem];
       setItems(newItems);
       if (typeof refreshListStats === 'function') {

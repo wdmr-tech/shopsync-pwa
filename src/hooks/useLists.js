@@ -23,13 +23,14 @@ export function useLists(currentUserId) {
   }, []);
 
   // Agregar una lista
-  const addList = useCallback(async (name, emoji, plannedDate = '', templateItems = []) => {
+  const addList = useCallback(async (name, emoji, plannedDate = '', templateItems = [], userId = null) => {
+    const finalUserId = userId || currentUserId;
     try {
-      const newList = await db.createList(name, emoji, plannedDate, currentUserId);
+      const newList = await db.createList(name, emoji, plannedDate, finalUserId);
       
       let items = [];
       if (templateItems && templateItems.length > 0) {
-        items = await db.addItems(newList.id, templateItems, currentUserId);
+        items = await db.addItems(newList.id, templateItems, finalUserId);
       }
 
       const total = items.length;
@@ -48,7 +49,7 @@ export function useLists(currentUserId) {
       console.error('Error al crear lista:', err);
       throw new Error('No se pudo crear la lista.');
     }
-  }, []);
+  }, [currentUserId]);
 
   // Eliminar una lista
   const removeList = useCallback(async (listId) => {

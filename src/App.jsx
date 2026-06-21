@@ -256,7 +256,7 @@ function App() {
             }))
           : (listToEdit?.templateItems || []);
 
-        const newList = await addList(newListName.trim(), newListEmoji, listDate, templateItems);
+        const newList = await addList(newListName.trim(), newListEmoji, listDate, templateItems, currentUser?.id);
         setListToEdit(null);
         setListToClone(null);
         setSelectedTemplate(null); // Cerrar el detalle de la plantilla si estaba abierto
@@ -287,7 +287,7 @@ function App() {
           quantity: finalQuantityString
         });
       } else {
-        await activeListItemsState.createItem(productName.trim(), finalQuantityString);
+        await activeListItemsState.createItem(productName.trim(), finalQuantityString, currentUser?.id);
       }
       
       // Limpiar estados del formulario
