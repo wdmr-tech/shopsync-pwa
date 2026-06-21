@@ -34,15 +34,15 @@ export function LoginView({ onLogin }) {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 select-none">
-      <div className="w-full max-w-sm flex flex-col justify-between h-[85vh]">
+    <div className="min-h-[100dvh] w-full flex flex-col items-center justify-center p-6 bg-white overflow-y-auto select-none">
+      <div className="w-full max-w-sm flex flex-col justify-center py-4">
         {/* Logo and Welcome Area */}
-        <div className="flex-1 flex flex-col items-center justify-center">
-          <div className="flex flex-col items-center justify-center mb-10">
+        <div className="flex flex-col items-center justify-center mb-6">
+          <div className="flex flex-col items-center justify-center mb-4">
             <img 
               src="/shopsync_login.png" 
               alt="ShopSync Logo" 
-              className="w-48 h-auto object-contain" 
+              className="w-64 h-auto object-contain" 
               onError={(e) => {
                 // Fallback por si la imagen no carga inmediatamente en el entorno
                 e.target.style.display = 'none';
@@ -60,10 +60,10 @@ export function LoginView({ onLogin }) {
         </div>
 
         {/* Form Container */}
-        <div className="mb-10">
-          <form onSubmit={handleSubmit} className="w-full flex flex-col gap-4">
+        <div className="w-full">
+          <form onSubmit={handleSubmit} className="w-full max-w-sm flex flex-col gap-4">
             {error && (
-              <div className="bg-red-50 text-red-500 text-sm p-3 rounded-xl text-center font-medium">
+              <div className="bg-red-50 text-red-500 text-sm p-3 rounded-xl text-center font-medium animate-fadeIn">
                 {error}
               </div>
             )}
@@ -74,7 +74,7 @@ export function LoginView({ onLogin }) {
                 type="text" 
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="Ej: developer, tester, profejp"
+                placeholder="Ingresa tu usuario"
                 className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3.5 focus:outline-none focus:border-[#0f62fe] focus:ring-1 focus:ring-[#0f62fe] transition-all"
               />
             </div>
@@ -93,14 +93,10 @@ export function LoginView({ onLogin }) {
             <button 
               type="submit"
               disabled={!username || !password}
-              className="w-full mt-4 bg-[#0f62fe] text-white font-bold py-4 rounded-2xl disabled:opacity-50 transition-opacity"
+              className="w-full mt-4 bg-[#0f62fe] text-white font-bold py-4 rounded-2xl disabled:opacity-50 transition-all active:scale-[0.99]"
             >
               Iniciar Sesión
             </button>
-            
-            <p className="text-center text-xs text-gray-400 mt-4">
-              Cuentas de prueba: developer, tester, profejp
-            </p>
           </form>
         </div>
       </div>
