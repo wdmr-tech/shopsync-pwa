@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Plus, GripVertical, Trash2, AlertTriangle, Calendar } from 'lucide-react';
-import { motion, AnimatePresence, useAnimation, Reorder } from 'framer-motion';
+import { motion, AnimatePresence, useAnimation, Reorder, useDragControls } from 'framer-motion';
 import { getListStatus } from '../utils/productDictionary';
 import { triggerHaptic } from '../utils/haptics';
 
@@ -12,7 +12,7 @@ const FILTERS = ['Pendientes', 'En progreso', 'Completadas', 'Todas'];
 
 
 // ─── Componente de tarjeta con Swipe-to-Delete ────────────────────────────────
-function ListCard({ list, onClick, onSwipeDelete }) {
+function ListCard({ list, onClick, onSwipeDelete, onDragHandleDown }) {
   const controls = useAnimation(); // Control manual de la animación
   const isDragging = useRef(false);
 
@@ -140,9 +140,46 @@ function ListCard({ list, onClick, onSwipeDelete }) {
         </div>
 
         {/* Ícono de reordenar */}
-        <GripVertical size={16} className="shrink-0 text-gray-300" />
+        <div 
+          onPointerDown={(e) => {
+            e.preventDefault(); 
+            if (onDragHandleDown) onDragHandleDown(e);
+          }}
+          className="p-2 cursor-grab active:cursor-grabbing text-gray-300 hover:text-gray-500 touch-none shrink-0"
+        >
+          <GripVertical size={16} />
+        </div>
       </motion.div>
     </div>
+  );
+}
+
+// ─── Componente Envoltorio para manejar el Arrastre (Drag) ─────────────────────
+function DraggableListCard({ list, activeFilter, onClick, onSwipeDelete }) {
+  const dragControls = useDragControls();
+
+  return (
+    <Reorder.Item 
+      value={list} 
+      id={list.id}
+      dragListener={false} // Desactiva el arrastre en toda la tarjeta
+      dragControls={dragControls} // Asigna los controles manuales
+      layout
+      initial={{ opacity: 0, x: 8 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -8 }}
+      transition={{ 
+        duration: 0.2,
+        ease: "easeOut"
+      }}
+    >
+      <ListCard
+        list={list}
+        onClick={onClick}
+        onSwipeDelete={onSwipeDelete}
+        onDragHandleDown={(e) => dragControls.start(e)}
+      />
+    </Reorder.Item>
   );
 }
 
@@ -407,25 +444,13 @@ export function HomeView({ lists, loading, removeList, onSelectList, onCreateLis
             <AnimatePresence mode="popLayout">
               {filteredLists.map((list) => {
                 return (
-                  <Reorder.Item 
-                    key={`${activeFilter}-${list.id}`} 
-                    value={list} 
-                    id={list.id}
-                    layout
-                    initial={{ opacity: 0, x: 8 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -8 }}
-                    transition={{ 
-                      duration: 0.2,
-                      ease: "easeOut"
-                    }}
-                  >
-                    <ListCard
-                      list={list}
-                      onClick={onSelectList}
-                      onSwipeDelete={setListToDelete}
-                    />
-                  </Reorder.Item>
+                  <DraggableListCard
+                    key={`${activeFilter}-${list.id}`}
+                    list={list}
+                    activeFilter={activeFilter}
+                    onClick={onSelectList}
+                    onSwipeDelete={setListToDelete}
+                  />
                 );
               })}
             </AnimatePresence>
