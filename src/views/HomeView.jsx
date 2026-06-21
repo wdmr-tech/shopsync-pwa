@@ -11,7 +11,7 @@ const FILTERS = ['Pendientes', 'En progreso', 'Completadas', 'Todas'];
 
 
 // ─── Componente de tarjeta con Swipe-to-Delete ────────────────────────────────
-function ListCard({ list, onClick, onSwipeDelete, onDragHandleDown }) {
+function ListCard({ list, onListClick, onSwipeDelete, onDragHandleDown }) {
   const controls = useAnimation(); // Control manual de la animación
   const isDragging = useRef(false);
 
@@ -84,7 +84,7 @@ function ListCard({ list, onClick, onSwipeDelete, onDragHandleDown }) {
             e.preventDefault();
             return;
           }
-          onClick(list.id);
+          if (onListClick) onListClick(list.id);
         }}
         className="relative z-10 w-full bg-white border border-gray-100 rounded-2xl p-4 shadow-sm flex items-center gap-3 cursor-pointer hover:border-gray-200 transition-colors select-none"
       >
@@ -154,7 +154,7 @@ function ListCard({ list, onClick, onSwipeDelete, onDragHandleDown }) {
 }
 
 // ─── Componente Envoltorio para manejar el Arrastre (Drag) ─────────────────────
-function DraggableListCard({ list, activeFilter, onClick, onSwipeDelete }) {
+function DraggableListCard({ list, activeFilter, onListClick, onSwipeDelete }) {
   const dragControls = useDragControls();
   const [isDragging, setIsDragging] = useState(false);
 
@@ -184,7 +184,7 @@ function DraggableListCard({ list, activeFilter, onClick, onSwipeDelete }) {
     >
       <ListCard
         list={list}
-        onClick={onClick}
+        onListClick={onListClick}
         onSwipeDelete={onSwipeDelete}
         onDragHandleDown={(e) => dragControls.start(e)}
       />
@@ -453,7 +453,7 @@ export function HomeView({ lists, loading, removeList, onSelectList, onCreateLis
                     key={`${activeFilter}-${list.id}`}
                     list={list}
                     activeFilter={activeFilter}
-                    onClick={onSelectList}
+                    onListClick={onSelectList}
                     onSwipeDelete={setListToDelete}
                   />
                 );
