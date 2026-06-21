@@ -64,7 +64,7 @@ function ListCard({ list, onClick, onSwipeDelete, onDragHandleDown }) {
                     : 'bg-gray-100 text-gray-500';
 
   return (
-    <div className="relative mb-3 rounded-2xl">
+    <div className="relative rounded-2xl">
       {/* Fondo rojo absoluto, ligeramente retraído (top/bottom de 1px) para evitar sangrado en las esquinas */}
       <div className="absolute top-[1px] bottom-[1px] right-[1px] w-[80%] bg-red-500 rounded-2xl flex items-center justify-end pr-5 text-white -z-0">
         <Trash2 size={24} />
@@ -164,6 +164,7 @@ function DraggableListCard({ list, activeFilter, onClick, onSwipeDelete }) {
       id={list.id}
       dragListener={false} // Desactiva el arrastre en toda la tarjeta
       dragControls={dragControls} // Asigna los controles manuales
+      className="relative mb-3 rounded-2xl bg-transparent"
       whileDrag={{ 
         scale: 1.02, 
         boxShadow: "0px 10px 20px rgba(15, 98, 254, 0.15)", // Sombra azul sutil
