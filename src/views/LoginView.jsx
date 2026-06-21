@@ -1,68 +1,107 @@
-import React from 'react';
-import { ArrowRight } from 'lucide-react';
+import React, { useState } from 'react';
+import { ShoppingBasket } from 'lucide-react';
+
+const VALID_USERS = {
+  'developer': { id: 'dev_user_01', name: 'Developer', password: 'devpassword' },
+  'tester': { id: 'test_user_02', name: 'Tester', password: 'testpassword' },
+  'profejp': { id: 'profejp_03', name: 'Profe JP', password: 'profepassword' }
+};
 
 export function LoginView({ onLogin }) {
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    setError('');
+    
+    const userKey = username.toLowerCase().trim();
+    const user = VALID_USERS[userKey];
+
+    if (!user) {
+      setError('Usuario no encontrado');
+      return;
+    }
+
+    if (user.password !== password) {
+      setError('Contraseña incorrecta');
+      return;
+    }
+
+    // Si todo es correcto, llamamos al onLogin que viene por prop
+    onLogin(user.id, user.name);
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 select-none">
       <div className="w-full max-w-sm flex flex-col justify-between h-[85vh]">
         {/* Logo and Welcome Area */}
         <div className="flex-1 flex flex-col items-center justify-center">
-          <div className="w-24 h-24 bg-white border border-slate-100 rounded-3xl flex items-center justify-center shadow-sm mb-6 p-4">
-            <img src="/shopsync-logo.svg" alt="ShopSync Logo" className="w-full h-full object-contain" />
+          <div className="flex flex-col items-center justify-center mb-10">
+            <img 
+              src="/shopsync_login.png" 
+              alt="ShopSync Logo" 
+              className="w-48 h-auto object-contain" 
+              onError={(e) => {
+                // Fallback por si la imagen no carga inmediatamente en el entorno
+                e.target.style.display = 'none';
+                e.target.nextSibling.style.display = 'flex';
+              }}
+            />
+            {/* Fallback visual (solo se muestra si la imagen falla) */}
+            <div style={{ display: 'none' }} className="flex-col items-center">
+              <div className="w-16 h-16 bg-[#0f62fe] rounded-2xl flex items-center justify-center mb-4">
+                <ShoppingBasket size={32} color="white" />
+              </div>
+              <h1 className="text-3xl font-extrabold text-[#0f62fe] tracking-tight">ShopSync</h1>
+            </div>
           </div>
-          <h1 className="text-3xl font-extrabold text-[#0f62fe] tracking-tight">ShopSync</h1>
-          <p className="text-slate-500 text-sm mt-3 text-center max-w-[280px] leading-relaxed">
-            Sincroniza tus compras cotidianas en tiempo real. Selecciona tu perfil para ingresar.
-          </p>
         </div>
 
-        {/* Profiles Selector Card */}
-        <div className="space-y-3.5 mb-10">
-          <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 px-1">
-            Selecciona tu perfil
-          </h3>
-
-          {/* Developer Profile Button */}
-          <button 
-            onClick={() => onLogin('developer', 'Developer')}
-            className="w-full bg-white hover:bg-blue-50/50 border border-slate-100 text-slate-800 font-semibold py-4 rounded-2xl transition-all shadow-sm flex items-center justify-between px-6 active:scale-[0.99]"
-          >
-            <div className="flex items-center gap-4">
-              <div className="w-10 h-10 rounded-xl bg-blue-50 text-[#0f62fe] flex items-center justify-center shrink-0 font-bold text-xs">
-                DEV
+        {/* Form Container */}
+        <div className="mb-10">
+          <form onSubmit={handleSubmit} className="w-full flex flex-col gap-4">
+            {error && (
+              <div className="bg-red-50 text-red-500 text-sm p-3 rounded-xl text-center font-medium">
+                {error}
               </div>
-              <span className="text-sm text-slate-700 font-semibold">Entrar como Developer</span>
+            )}
+            
+            <div>
+              <label className="text-xs font-bold text-gray-500 uppercase tracking-wider pl-1 mb-1 block">Usuario</label>
+              <input 
+                type="text" 
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="Ej: developer, tester, profejp"
+                className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3.5 focus:outline-none focus:border-[#0f62fe] focus:ring-1 focus:ring-[#0f62fe] transition-all"
+              />
             </div>
-            <ArrowRight size={18} className="text-slate-400" />
-          </button>
 
-          {/* Test Profile Button */}
-          <button 
-            onClick={() => onLogin('tester', 'Test')}
-            className="w-full bg-white hover:bg-yellow-50/40 border border-slate-100 text-slate-800 font-semibold py-4 rounded-2xl transition-all shadow-sm flex items-center justify-between px-6 active:scale-[0.99]"
-          >
-            <div className="flex items-center gap-4">
-              <div className="w-10 h-10 rounded-xl bg-yellow-50 text-yellow-600 flex items-center justify-center shrink-0 font-bold text-xs">
-                TST
-              </div>
-              <span className="text-sm text-slate-700 font-semibold">Entrar como Test</span>
+            <div>
+              <label className="text-xs font-bold text-gray-500 uppercase tracking-wider pl-1 mb-1 block">Contraseña</label>
+              <input 
+                type="password" 
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3.5 focus:outline-none focus:border-[#0f62fe] focus:ring-1 focus:ring-[#0f62fe] transition-all"
+              />
             </div>
-            <ArrowRight size={18} className="text-slate-400" />
-          </button>
 
-          {/* Reviewer Profile Button */}
-          <button 
-            onClick={() => onLogin('profejp', 'Reviewer')}
-            className="w-full bg-white hover:bg-purple-50/40 border border-slate-100 text-slate-800 font-semibold py-4 rounded-2xl transition-all shadow-sm flex items-center justify-between px-6 active:scale-[0.99]"
-          >
-            <div className="flex items-center gap-4">
-              <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0 font-bold text-xs">
-                REV
-              </div>
-              <span className="text-sm text-slate-700 font-semibold">Entrar como Reviewer</span>
-            </div>
-            <ArrowRight size={18} className="text-slate-400" />
-          </button>
+            <button 
+              type="submit"
+              disabled={!username || !password}
+              className="w-full mt-4 bg-[#0f62fe] text-white font-bold py-4 rounded-2xl disabled:opacity-50 transition-opacity"
+            >
+              Iniciar Sesión
+            </button>
+            
+            <p className="text-center text-xs text-gray-400 mt-4">
+              Cuentas de prueba: developer, tester, profejp
+            </p>
+          </form>
         </div>
       </div>
     </div>
