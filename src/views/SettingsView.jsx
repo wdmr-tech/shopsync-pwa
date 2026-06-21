@@ -1,7 +1,10 @@
-import React from 'react';
-import { LogOut } from 'lucide-react';
+import React, { useState } from 'react';
+import { LogOut, X, ShoppingCart, ChevronRight } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
-export function SettingsView({ onLogout }) {
+export function SettingsView({ onLogout, currentUser }) {
+  const [showAbout, setShowAbout] = useState(false);
+
   return (
     <div className="flex-1 bg-slate-50 flex flex-col h-full overflow-hidden select-none">
       {/* Header */}
@@ -11,8 +14,33 @@ export function SettingsView({ onLogout }) {
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto px-4 py-6 flex flex-col">
-        {/* Logout Button Container */}
-        <div className="flex-1 flex flex-col justify-start">
+        {/* Usuario Actual */}
+        <div className="bg-white rounded-2xl p-4 mb-6 flex items-center gap-4 border border-gray-100 shadow-sm">
+          <div className="w-12 h-12 bg-blue-100 text-[#0f62fe] rounded-full flex items-center justify-center font-bold text-lg select-none">
+            {currentUser?.name?.charAt(0) || 'I'}
+          </div>
+          <div>
+            <p className="text-sm text-gray-500 font-medium">Sesión iniciada como</p>
+            <p className="text-lg font-bold text-gray-900">{currentUser?.name || 'Invitado'}</p>
+          </div>
+        </div>
+
+        {/* Opciones de Ajustes */}
+        <div className="space-y-4 mb-6">
+          <button
+            onClick={() => setShowAbout(true)}
+            className="w-full bg-white hover:bg-gray-50 text-slate-800 font-semibold py-4 rounded-2xl transition-all flex items-center justify-between px-6 border border-gray-100 shadow-sm active:scale-[0.99]"
+          >
+            <div className="flex items-center gap-3">
+              <ShoppingCart size={18} className="text-[#0f62fe]" />
+              <span className="text-sm font-semibold">Acerca de ShopSync</span>
+            </div>
+            <ChevronRight size={18} className="text-gray-400" />
+          </button>
+        </div>
+
+        {/* Botón de Cerrar Sesión reubicado en el fondo */}
+        <div className="mt-auto mb-20">
           <button
             onClick={onLogout}
             className="w-full bg-red-50 hover:bg-red-100 text-red-600 font-semibold py-3.5 rounded-2xl transition-all flex items-center justify-between px-6 border border-red-100 active:scale-[0.99]"
@@ -23,14 +51,41 @@ export function SettingsView({ onLogout }) {
             </div>
           </button>
         </div>
-
-        {/* Info / Version / Credits */}
-        <div className="mt-auto pt-8 pb-28 flex flex-col items-center justify-center text-center">
-          <p className="text-sm font-bold text-gray-500 mb-2">ShopSync v1.2.0</p>
-          <p className="text-xs text-gray-400">Desarrollado usando IA por Wladimir Acevedo</p>
-          <p className="text-[11px] text-gray-400/80 mt-1">Módulo Diseño UX/UI + IA - 2026</p>
-        </div>
       </div>
+
+      {/* Modal Acerca de */}
+      <AnimatePresence>
+        {showAbout && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 backdrop-blur-sm p-6">
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-3xl p-6 w-full max-w-sm flex flex-col items-center text-center relative shadow-xl border border-gray-50"
+            >
+              <button 
+                onClick={() => setShowAbout(false)} 
+                className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
+                aria-label="Cerrar modal"
+              >
+                <X size={20} />
+              </button>
+              
+              <div className="w-16 h-16 bg-[#0f62fe] rounded-2xl flex items-center justify-center mb-4 mt-2 shadow-lg shadow-blue-500/20">
+                <ShoppingCart size={32} color="white" />
+              </div>
+              
+              <h2 className="text-2xl font-bold text-gray-900 mb-1">ShopSync</h2>
+              <p className="text-sm font-semibold text-[#0f62fe] mb-6">v1.2.0</p>
+              
+              <div className="bg-gray-50 w-full p-4 rounded-2xl">
+                <p className="text-sm text-gray-600 font-medium">Desarrollado por Wladimir Acevedo</p>
+                <p className="text-[11px] text-gray-400 mt-1">Módulo Diseño UX/UI + IA - 2026</p>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

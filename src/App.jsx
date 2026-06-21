@@ -401,7 +401,7 @@ function App() {
               />
             )
           ) : currentTab === 'settings' ? (
-            <SettingsView onLogout={handleLogout} />
+            <SettingsView onLogout={handleLogout} currentUser={currentUser} />
           ) : (
             <div className="flex-1 flex items-center justify-center text-gray-500 font-semibold select-none">
               Próximamente...

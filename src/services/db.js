@@ -12,7 +12,9 @@ export const db = {
       .from('lists')
       .select('*, items(*)');
 
-    if (userId) {
+    if (userId === 'guest') {
+      query = query.is('user_id', null);
+    } else if (userId) {
       query = query.eq('user_id', userId);
     }
 
@@ -68,10 +70,17 @@ export const db = {
 
     // Si la función RPC no existe o falla, hacemos el update manual
     if (rpcError) {
-      const { data: existingLists } = await supabase
+      let orderQuery = supabase
         .from('lists')
-        .select('id, sort_order')
-        .eq('user_id', userId)
+        .select('id, sort_order');
+
+      if (userId === 'guest') {
+        orderQuery = orderQuery.is('user_id', null);
+      } else if (userId) {
+        orderQuery = orderQuery.eq('user_id', userId);
+      }
+
+      const { data: existingLists } = await orderQuery
         .order('sort_order', { ascending: true });
 
       if (existingLists && existingLists.length > 0) {
@@ -94,7 +103,7 @@ export const db = {
         emoji: emoji || '📝',
         planned_date: plannedDate || null,
         sort_order: 0,
-        user_id: userId,
+        user_id: userId === 'guest' ? null : userId,
       })
       .select()
       .single();
@@ -153,7 +162,9 @@ export const db = {
       .select('*')
       .eq('list_id', listId);
 
-    if (userId) {
+    if (userId === 'guest') {
+      query = query.is('user_id', null);
+    } else if (userId) {
       query = query.eq('user_id', userId);
     }
 
@@ -177,7 +188,7 @@ export const db = {
         list_id: listId,
         name,
         quantity,
-        user_id: userId,
+        user_id: userId === 'guest' ? null : userId,
       })
       .select()
       .single();
@@ -262,7 +273,7 @@ export const db = {
           name: item.name,
           quantity: item.quantity || '',
           completed: false,
-          user_id: userId,
+          user_id: userId === 'guest' ? null : userId,
         }))
       )
       .select();

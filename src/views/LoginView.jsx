@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ShoppingBasket } from 'lucide-react';
+import { ShoppingBasket, Eye, EyeOff } from 'lucide-react';
 
 const VALID_USERS = {
   'developer': { id: 'dev_user_01', name: 'Developer', password: 'devpassword' },
@@ -10,6 +10,7 @@ const VALID_USERS = {
 export function LoginView({ onLogin }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
 
   const handleSubmit = (e) => {
@@ -81,13 +82,22 @@ export function LoginView({ onLogin }) {
 
             <div>
               <label className="text-xs font-bold text-gray-500 uppercase tracking-wider pl-1 mb-1 block">Contraseña</label>
-              <input 
-                type="password" 
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3.5 focus:outline-none focus:border-[#0f62fe] focus:ring-1 focus:ring-[#0f62fe] transition-all"
-              />
+              <div className="relative">
+                <input 
+                  type={showPassword ? "text" : "password"} 
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 pr-12 py-3.5 focus:outline-none focus:border-[#0f62fe] focus:ring-1 focus:ring-[#0f62fe] transition-all"
+                />
+                <button 
+                  type="button" 
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
             </div>
 
             <button 
@@ -96,6 +106,14 @@ export function LoginView({ onLogin }) {
               className="w-full mt-4 bg-[#0f62fe] text-white font-bold py-4 rounded-2xl disabled:opacity-50 transition-all active:scale-[0.99]"
             >
               Iniciar Sesión
+            </button>
+
+            <button 
+              type="button"
+              onClick={() => onLogin('guest', 'Invitado')}
+              className="w-full mt-4 text-[#0f62fe] font-semibold hover:underline bg-transparent"
+            >
+              Ingresar como invitado
             </button>
           </form>
         </div>
