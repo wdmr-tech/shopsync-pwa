@@ -164,6 +164,11 @@ function DraggableListCard({ list, activeFilter, onClick, onSwipeDelete }) {
       id={list.id}
       dragListener={false} // Desactiva el arrastre en toda la tarjeta
       dragControls={dragControls} // Asigna los controles manuales
+      whileDrag={{ 
+        scale: 1.02, 
+        boxShadow: "0px 10px 20px rgba(15, 98, 254, 0.15)", // Sombra azul sutil
+        zIndex: 50 // Asegura que quede por encima de las demás
+      }}
       layout
       initial={{ opacity: 0, x: 8 }}
       animate={{ opacity: 1, x: 0 }}
