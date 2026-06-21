@@ -144,10 +144,11 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
   // Refs para evitar clausuras obsoletas en el callback del popstate
   const listRef = useRef(list);
   const itemsRef = useRef(items);
+
   useEffect(() => {
     listRef.current = list;
     itemsRef.current = items;
-  });
+  }, [list, items]);
 
   // Interceptar el botón de atrás físico / Hardware Back Button
   useEffect(() => {
@@ -177,12 +178,9 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
     // 3. Escuchamos el evento 'popstate' que lanza el botón Atrás
     window.addEventListener('popstate', handlePopState);
 
-    // 4. Limpieza al desmontar el componente (por si salen usando tu botón del header)
+    // 4. Limpieza al desmontar el componente (SOLO remover el listener, sin window.history.back())
     return () => {
       window.removeEventListener('popstate', handlePopState);
-      if (window.history.state?.isInsideList) {
-        window.history.back();
-      }
     };
   }, []);
 
@@ -272,21 +270,8 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
         const isRightSwipe = distance > 100; // Umbral de 100px para volver atrás
 
         if (isRightSwipe) {
-          setIsExiting(true);
-          setTimeout(() => {
-            try {
-              if (typeof setActiveTab === 'function') {
-                const currentStatus = getListStatus({ ...list, items: items });
-                const tabToSelect = currentStatus === 'en progreso' ? 'En progreso' 
-                                  : currentStatus === 'completada' ? 'Completadas' 
-                                  : 'Pendientes';
-                setActiveTab(tabToSelect);
-              }
-              if (typeof onBack === 'function') onBack();
-            } catch (err) {
-              if (typeof onBack === 'function') onBack();
-            }
-          }, 250);
+          if (typeof triggerHaptic === 'function') triggerHaptic(30);
+          window.history.back(); // Esto disparará el popstate y cerrará la vista
         }
       }}
     >
@@ -314,28 +299,7 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
         <div className="flex items-center space-x-3 min-w-0 w-full">
           {/* Botón Retroceso */}
           <button 
-            onClick={() => {
-              try {
-                // 1. Calculamos el estado actual usando la variable 'items' fresca del componente
-                const currentStatus = getListStatus({ ...list, items: items });
-                const tabToSelect = currentStatus === 'en progreso' ? 'En progreso' 
-                                  : currentStatus === 'completada' ? 'Completadas' 
-                                  : 'Pendientes';
-                if (typeof setActiveTab === 'function') {
-                  setActiveTab(tabToSelect);
-                }
-                
-                // 2. Ejecutamos la navegación OBLIGATORIAMENTE
-                if (typeof onBack === 'function') {
-                  onBack();
-                } else {
-                  console.error("La función onBack no se pasó como prop.");
-                }
-              } catch (error) {
-                console.error("Error al volver:", error);
-                if (typeof onBack === 'function') onBack();
-              }
-            }}
+            onClick={() => window.history.back()}
             className="p-2 -ml-2 text-gray-600 hover:bg-gray-100 rounded-full transition-colors shrink-0"
             aria-label="Volver al inicio"
           >
