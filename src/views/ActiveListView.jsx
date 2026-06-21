@@ -10,7 +10,9 @@ import {
   Edit2,
   ArrowRight,
   Copy,
-  Globe
+  Globe,
+  Bell,
+  MoreVertical
 } from 'lucide-react';
 import { motion, AnimatePresence, useAnimation } from 'framer-motion';
 import { getCategoryForProduct, formatListDate, getListStatus, formatQuantityText } from '../utils/productDictionary';
@@ -121,12 +123,14 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
   // Estados para modal de edición de fecha
   const [showDateModal, setShowDateModal] = useState(false);
   const [tempDate, setTempDate] = useState('');
+  const [enableReminder, setEnableReminder] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
 
   // Estados para modal de publicación en la comunidad
   const [showShareModal, setShowShareModal] = useState(false);
   const [shareDescription, setShareDescription] = useState('');
   const [shareCategory, setShareCategory] = useState('Recetas');
+  const [showMenu, setShowMenu] = useState(false);
 
 
   const touchStartX = useRef(null);
@@ -351,9 +355,9 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
         </div>
 
         {/* Debajo de la barra de progreso */}
-        <div className="flex items-center justify-between mt-3">
-          {/* Izquierda: Botón Completar y Duplicar */}
-          <div className="flex items-center gap-4">
+        <div className="flex items-center justify-between mt-3 mb-1.5 relative">
+          {/* Izquierda: Completar */}
+          <div>
             {!isListCompleted && (
               <button 
                 onClick={() => { setModalType('manual'); setShowCompleteModal(true); }}
@@ -363,35 +367,16 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
                 Completar
               </button>
             )}
-            
-            <button 
-              onClick={() => {
-                if (typeof onDuplicateList === 'function') {
-                  onDuplicateList({ ...listRef.current, items: itemsRef.current });
-                }
-              }}
-              className="text-gray-500 hover:text-[#0f62fe] font-semibold text-sm tracking-wide active:opacity-70 flex items-center gap-1.5 py-1 transition-colors"
-            >
-              <Copy size={16} />
-              Duplicar
-            </button>
-
-            <button 
-              onClick={() => setShowShareModal(true)}
-              className="text-gray-500 hover:text-green-600 font-semibold text-sm tracking-wide active:opacity-70 flex items-center gap-1.5 py-1 transition-colors"
-            >
-              <Globe size={16} />
-              Publicar
-            </button>
           </div>
           
-          {/* Derecha: Fecha de Compra (tu código actual del botón de fecha) */}
-          <div>
+          {/* Derecha: Fecha y Menú Kebab */}
+          <div className="flex items-center gap-2">
             {(list?.plannedDate || list?.date) && (
               <button 
                 type="button"
                 onClick={() => {
                   setTempDate(list?.plannedDate || list?.date || ''); // Carga la fecha actual en el estado temporal
+                  setEnableReminder(list?.reminder || false);
                   setShowDateModal(true);
                 }}
                 className="flex items-center gap-1.5 leading-none bg-blue-50/50 px-3 py-2 rounded-md cursor-pointer hover:bg-blue-50 active:bg-blue-100 transition-colors"
@@ -403,6 +388,51 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
                 <Edit2 size={10} className="text-gray-400 ml-1" />
               </button>
             )}
+
+            <div className="relative">
+              <button 
+                type="button"
+                onClick={() => setShowMenu(!showMenu)}
+                className="p-1.5 text-gray-400 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
+              >
+                <MoreVertical size={18} />
+              </button>
+
+              {/* Menú Desplegable */}
+              <AnimatePresence>
+                {showMenu && (
+                  <motion.div 
+                    initial={{ opacity: 0, scale: 0.95, y: -10 }} 
+                    animate={{ opacity: 1, scale: 1, y: 0 }} 
+                    exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                    className="absolute right-0 top-full mt-1 w-40 bg-white border border-gray-100 rounded-xl shadow-lg py-1.5 z-50 flex flex-col animate-fadeIn"
+                  >
+                    <button 
+                      type="button"
+                      onClick={() => { 
+                        setShowMenu(false); 
+                        if (typeof onDuplicateList === 'function') {
+                          onDuplicateList({ ...listRef.current, items: itemsRef.current });
+                        }
+                      }}
+                      className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 text-left cursor-pointer transition-colors"
+                    >
+                      <Copy size={16} className="text-gray-400" /> Duplicar
+                    </button>
+                    <button 
+                      type="button"
+                      onClick={() => { 
+                        setShowMenu(false); 
+                        setShowShareModal(true); 
+                      }}
+                      className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 text-left cursor-pointer transition-colors"
+                    >
+                      <Globe size={16} className="text-[#0f62fe]" /> Publicar
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           </div>
         </div>
       </div>
@@ -613,6 +643,22 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
                 >
                   {tempDate ? formatListDate(tempDate) : "Selecciona una fecha"}
                 </button>
+
+                {tempDate && (
+                  <div className="w-full mt-2 flex items-center justify-between bg-blue-50/50 p-4 rounded-xl border border-blue-100">
+                    <div className="flex items-center gap-3">
+                      <Bell size={18} className={enableReminder ? "text-[#0f62fe]" : "text-gray-400"} />
+                      <div className="text-left">
+                        <p className="text-sm font-semibold text-gray-800">Recordatorio</p>
+                        <p className="text-[11px] text-gray-500">Notificar el día de la compra</p>
+                      </div>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input type="checkbox" className="sr-only peer" checked={enableReminder} onChange={(e) => setEnableReminder(e.target.checked)} />
+                      <div className="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#0f62fe]"></div>
+                    </label>
+                  </div>
+                )}
               </div>
 
               <div className="flex gap-3 w-full pt-2">
@@ -628,7 +674,10 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
                   onClick={async () => {
                     if (tempDate && updateList) {
                       try {
-                        await updateList(list.id, { plannedDate: tempDate });
+                        await updateList(list.id, { 
+                          plannedDate: tempDate, 
+                          reminder: enableReminder 
+                        });
                       } catch (err) {
                         alert('Error al actualizar la fecha');
                       }
@@ -668,7 +717,7 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
               className="absolute top-1/2 left-5 right-5 -translate-y-1/2 bg-white rounded-3xl p-6 shadow-2xl z-50 flex flex-col space-y-4 border border-slate-100"
             >
               <div className="flex flex-col items-center text-center">
-                <div className="w-12 h-12 bg-green-50 text-green-600 rounded-full flex items-center justify-center mb-4">
+                <div className="w-12 h-12 bg-blue-50 text-[#0f62fe] rounded-full flex items-center justify-center mb-4">
                   <Globe size={24} />
                 </div>
                 <h3 className="text-xl font-bold text-slate-800 mb-2">Publicar en Explorar</h3>
@@ -723,7 +772,7 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
                     setShowShareModal(false);
                     setShareDescription('');
                   }} 
-                  className="flex-1 h-11 bg-green-600 hover:bg-green-700 text-white font-semibold text-sm rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 h-11 bg-[#0f62fe] hover:bg-[#0b51d4] text-white font-semibold text-sm rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Publicar
                 </button>

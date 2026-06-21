@@ -8,7 +8,7 @@ import { ExploreDetailView } from './views/ExploreDetailView';
 import { BottomSheet } from './components/BottomSheet';
 import { BottomNavBar } from './components/BottomNavBar';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Plus, Smile, Mic, CheckCircle2 } from 'lucide-react';
+import { Plus, Smile, Mic, CheckCircle2, Bell } from 'lucide-react';
 import { COMMON_PRODUCTS, formatQuantityText, formatListDate } from './utils/productDictionary';
 import EmojiPicker from 'emoji-picker-react';
 import { CustomDatePickerModal } from './components/CustomDatePickerModal';
@@ -65,7 +65,7 @@ function App() {
     }
   });
 
-  const { lists, loading: listsLoading, addList, removeList, reorderLists, updateList, refreshListStats } = useLists(currentUser?.id);
+  const { lists, loading: listsLoading, addList, removeList, reorderLists, updateList, refreshListStats } = useLists(currentUser?.id || 'guest');
 
   const handleLogin = (userId, userName) => {
     const userData = { id: userId, name: userName };
@@ -158,6 +158,7 @@ function App() {
   const [newListName, setNewListName] = useState('');
   const [newListEmoji, setNewListEmoji] = useState('🛒');
   const [listDate, setListDate] = useState('');
+  const [enableReminder, setEnableReminder] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
   // Sincronizar estados del formulario al seleccionar una lista para editar, crear o clonar
@@ -170,10 +171,12 @@ function App() {
       setNewListName(listToEdit.name || '');
       setNewListEmoji(listToEdit.emoji || '🛒');
       setListDate(listToEdit.plannedDate || listToEdit.date || '');
+      setEnableReminder(listToEdit.reminder || false);
     } else {
       setNewListName('');
       setNewListEmoji('🛒');
       setListDate('');
+      setEnableReminder(false);
     }
   }, [listToClone, listToEdit]);
   
@@ -246,7 +249,7 @@ function App() {
   }, [bottomSheet, autoStartVoice]);
 
   // Hook para gestionar los items de la lista activa compartida entre la vista y el BottomSheet
-  const activeListItemsState = useItems(selectedListId, refreshListStats, currentUser?.id);
+  const activeListItemsState = useItems(selectedListId, refreshListStats, currentUser?.id || 'guest');
 
   // Sincronizar estados del formulario al seleccionar un producto para editar
   useEffect(() => {
@@ -290,7 +293,8 @@ function App() {
         await updateList(listToEdit.id, {
           name: newListName.trim(),
           emoji: newListEmoji,
-          plannedDate: listDate
+          plannedDate: listDate,
+          reminder: enableReminder
         });
         setListToEdit(null);
       } else {
@@ -301,7 +305,7 @@ function App() {
             }))
           : (listToEdit?.templateItems || []);
 
-        const newList = await addList(newListName.trim(), newListEmoji, listDate, templateItems, currentUser?.id);
+        const newList = await addList(newListName.trim(), newListEmoji, listDate, templateItems, currentUser?.id, enableReminder);
         setListToEdit(null);
         setListToClone(null);
         setSelectedTemplate(null); // Cerrar el detalle de la plantilla si estaba abierto
@@ -403,6 +407,7 @@ function App() {
                 activeFilter={activeFilter}
                 setActiveFilter={setActiveFilter}
                 showToast={showToast}
+                updateList={updateList}
               />
             ) : (
               <ActiveListView
@@ -580,6 +585,21 @@ function App() {
                   >
                     {listDate ? formatListDate(listDate) : "Selecciona una fecha"}
                   </button>
+                  {listDate && (
+                    <div className="mt-4 mb-2 flex items-center justify-between bg-blue-50/50 p-4 rounded-xl border border-blue-100">
+                      <div className="flex items-center gap-3">
+                        <Bell size={18} className={enableReminder ? "text-[#0f62fe]" : "text-gray-400"} />
+                        <div>
+                          <p className="text-sm font-semibold text-gray-800">Recordatorio</p>
+                          <p className="text-[11px] text-gray-500">Notificar el día de la compra</p>
+                        </div>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" className="sr-only peer" checked={enableReminder} onChange={(e) => setEnableReminder(e.target.checked)} />
+                        <div className="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#0f62fe]"></div>
+                      </label>
+                    </div>
+                  )}
                 </div>
 
                 {/* Botón CTA (Validación y Estado Activo/Inactivo) */}

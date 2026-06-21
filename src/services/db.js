@@ -12,10 +12,14 @@ export const db = {
       .from('lists')
       .select('*, items(*)');
 
+    // Lógica estricta de aislamiento
     if (userId === 'guest') {
-      query = query.is('user_id', null);
+      query = query.is('user_id', null); // El invitado SOLO ve las listas sin dueño
     } else if (userId) {
-      query = query.eq('user_id', userId);
+      query = query.eq('user_id', userId); // El usuario logueado SOLO ve sus listas
+    } else {
+      // Si por algún motivo userId es undefined/falso y NO es guest, devolvemos vacío por seguridad
+      return [];
     }
 
     const { data, error } = await query
@@ -64,7 +68,7 @@ export const db = {
   },
 
   // Crea una nueva lista
-  createList: async (name, emoji = '📝', plannedDate = '', userId) => {
+  createList: async (name, emoji = '📝', plannedDate = '', reminder = false, userId) => {
     // Primero, intentar incrementar sort_order vía RPC (más eficiente y atómico)
     const { error: rpcError } = await supabase.rpc('increment_sort_order_not_exists');
 
@@ -104,6 +108,7 @@ export const db = {
         planned_date: plannedDate || null,
         sort_order: 0,
         user_id: userId === 'guest' ? null : userId,
+        reminder: reminder,
       })
       .select()
       .single();
@@ -162,10 +167,14 @@ export const db = {
       .select('*')
       .eq('list_id', listId);
 
+    // Lógica estricta de aislamiento
     if (userId === 'guest') {
-      query = query.is('user_id', null);
+      query = query.is('user_id', null); // El invitado SOLO ve los ítems sin dueño
     } else if (userId) {
-      query = query.eq('user_id', userId);
+      query = query.eq('user_id', userId); // El usuario logueado SOLO ve sus ítems
+    } else {
+      // Si por algún motivo userId es undefined/falso y NO es guest, devolvemos vacío por seguridad
+      return [];
     }
 
     const { data, error } = await query

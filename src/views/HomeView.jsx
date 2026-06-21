@@ -1,7 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
-import { Plus, GripVertical, Trash2, AlertTriangle, Calendar } from 'lucide-react';
+import { Plus, GripVertical, Trash2, AlertTriangle, Calendar, Bell, X } from 'lucide-react';
 import { motion, AnimatePresence, useAnimation, Reorder, useDragControls } from 'framer-motion';
 import { getListStatus } from '../utils/productDictionary';
+import { checkReminders } from '../utils/reminders';
 
 
 
@@ -246,11 +246,14 @@ function DeleteConfirmModal({ listName, onConfirm, onCancel }) {
 }
 
 // ─── Vista principal ───────────────────────────────────────────────────────────
-export function HomeView({ lists, loading, removeList, onSelectList, onCreateListClick, onReorder, activeFilter, setActiveFilter, showToast }) {
+export function HomeView({ lists, loading, removeList, onSelectList, onCreateListClick, onReorder, activeFilter, setActiveFilter, showToast, updateList }) {
   const [listToDelete, setListToDelete] = useState(null); // id de la lista pendiente de confirmar
+  const [showRemindersModal, setShowRemindersModal] = useState(false);
   const touchStartX = useRef(null);
   const touchEndX = useRef(null);
   const filterRefs = useRef({});
+
+  const reminders = checkReminders(lists);
 
   useEffect(() => {
     if (filterRefs.current[activeFilter]) {
@@ -325,6 +328,160 @@ export function HomeView({ lists, loading, removeList, onSelectList, onCreateLis
   return (
     <div className="flex flex-col h-full relative">
 
+      {/* ── Modal de Recordatorios ── */}
+      <AnimatePresence>
+        {showRemindersModal && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowRemindersModal(false)}
+              className="absolute inset-0 bg-black/45 backdrop-blur-[1px] z-40 cursor-pointer"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              className="absolute top-1/2 left-5 right-5 -translate-y-1/2 bg-white rounded-3xl p-6 shadow-2xl z-50 flex flex-col space-y-4 max-h-[80vh] overflow-y-auto"
+            >
+              <div className="flex flex-col items-center mb-2 text-center">
+                <div className="w-12 h-12 bg-blue-50 text-[#0f62fe] rounded-full flex items-center justify-center mb-4">
+                  <Bell size={24} />
+                </div>
+                <h3 className="text-xl font-bold text-slate-800 mb-2">Tus Recordatorios</h3>
+                {reminders.count === 0 ? (
+                  <p className="text-gray-500 text-sm">No tienes recordatorios pendientes.</p>
+                ) : (
+                  <p className="text-gray-500 text-sm">Tienes {reminders.count} listas programadas para estos días.</p>
+                )}
+              </div>
+
+              {reminders.overdue.length > 0 && (
+                <div>
+                  <h4 className="text-xs font-bold text-red-500 uppercase tracking-wider mb-2">Atrasadas</h4>
+                  {reminders.overdue.map(l => (
+                    <div 
+                      key={l.id} 
+                      className="bg-red-50 rounded-xl p-3 mb-2 flex items-center justify-between cursor-pointer hover:bg-red-100 transition-colors animate-fadeIn"
+                      onClick={() => { setShowRemindersModal(false); onSelectList(l.id); }}
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <span className="text-2xl shrink-0 select-none">{l.emoji}</span>
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-slate-800 truncate">{l.name}</p>
+                          <p className="text-xs text-red-500 font-medium">Atrasada</p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          try {
+                            await updateList(l.id, { reminder: false });
+                            if (showToast) showToast('Recordatorio desactivado');
+                          } catch (err) {
+                            console.error('Error al desactivar recordatorio:', err);
+                          }
+                        }}
+                        className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-100/50 rounded-lg transition-colors cursor-pointer shrink-0"
+                        title="Desactivar recordatorio"
+                      >
+                        <X size={15} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {reminders.today.length > 0 && (
+                <div>
+                  <h4 className="text-xs font-bold text-[#0f62fe] uppercase tracking-wider mb-2">Para Hoy</h4>
+                  {reminders.today.map(l => (
+                    <div 
+                      key={l.id} 
+                      className="bg-blue-50 rounded-xl p-3 mb-2 flex items-center justify-between cursor-pointer hover:bg-blue-100 transition-colors animate-fadeIn"
+                      onClick={() => { setShowRemindersModal(false); onSelectList(l.id); }}
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <span className="text-2xl shrink-0 select-none">{l.emoji}</span>
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-slate-800 truncate">{l.name}</p>
+                          <p className="text-xs text-blue-600 font-medium">¡Hoy es el día!</p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          try {
+                            await updateList(l.id, { reminder: false });
+                            if (showToast) showToast('Recordatorio desactivado');
+                          } catch (err) {
+                            console.error('Error al desactivar recordatorio:', err);
+                          }
+                        }}
+                        className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-100/50 rounded-lg transition-colors cursor-pointer shrink-0"
+                        title="Desactivar recordatorio"
+                      >
+                        <X size={15} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {reminders.tomorrow.length > 0 && (
+                <div>
+                  <h4 className="text-xs font-bold text-orange-500 uppercase tracking-wider mb-2">Mañana</h4>
+                  {reminders.tomorrow.map(l => (
+                    <div 
+                      key={l.id} 
+                      className="bg-orange-50 rounded-xl p-3 mb-2 flex items-center justify-between cursor-pointer hover:bg-orange-100 transition-colors animate-fadeIn"
+                      onClick={() => { setShowRemindersModal(false); onSelectList(l.id); }}
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <span className="text-2xl shrink-0 select-none">{l.emoji}</span>
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-slate-800 truncate">{l.name}</p>
+                          <p className="text-xs text-orange-600 font-medium">Mañana</p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          try {
+                            await updateList(l.id, { reminder: false });
+                            if (showToast) showToast('Recordatorio desactivado');
+                          } catch (err) {
+                            console.error('Error al desactivar recordatorio:', err);
+                          }
+                        }}
+                        className="p-1.5 text-gray-400 hover:text-orange-600 hover:bg-orange-100/50 rounded-lg transition-colors cursor-pointer shrink-0"
+                        title="Desactivar recordatorio"
+                      >
+                        <X size={15} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="pt-2">
+                <button 
+                  onClick={() => setShowRemindersModal(false)}
+                  className="w-full h-11 bg-slate-50 hover:bg-slate-100 text-slate-600 font-semibold text-sm rounded-xl transition-colors"
+                >
+                  Cerrar
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
       {/* Scrollbar vertical minimalista */}
       <style>{`
         .lists-scroll::-webkit-scrollbar { width: 4px; }
@@ -339,6 +496,17 @@ export function HomeView({ lists, loading, removeList, onSelectList, onCreateLis
         <span className="absolute left-1/2 -translate-x-1/2 text-lg font-semibold text-gray-800 pointer-events-none">
           Mis listas
         </span>
+
+        <button 
+          type="button" 
+          onClick={() => setShowRemindersModal(true)}
+          className="relative p-2 text-gray-400 hover:text-[#0f62fe] transition-colors"
+        >
+          <Bell size={20} />
+          {reminders.count > 0 && (
+            <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>
+          )}
+        </button>
       </div>
 
       {/* ── CHIPS DE FILTRO ── */}

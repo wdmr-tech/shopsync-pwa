@@ -20,13 +20,13 @@ export function useLists(currentUserId) {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [currentUserId]);
 
   // Agregar una lista
-  const addList = useCallback(async (name, emoji, plannedDate = '', templateItems = [], userId = null) => {
+  const addList = useCallback(async (name, emoji, plannedDate = '', templateItems = [], userId = null, reminder = false) => {
     const finalUserId = userId || currentUserId;
     try {
-      const newList = await db.createList(name, emoji, plannedDate, finalUserId);
+      const newList = await db.createList(name, emoji, plannedDate, reminder, finalUserId);
       
       let items = [];
       if (templateItems && templateItems.length > 0) {
@@ -65,7 +65,7 @@ export function useLists(currentUserId) {
   // Recalcular stats de una lista específica (llamar tras toggle/add/remove de ítem)
   const refreshListStats = useCallback(async (listId, customItems) => {
     try {
-      const items = customItems || await db.getItemsByListId(listId);
+      const items = customItems || await db.getItemsByListId(listId, currentUserId);
       const total = items.length;
       const completed = items.filter((i) => i.completed).length;
       const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
@@ -95,7 +95,7 @@ export function useLists(currentUserId) {
     } catch (err) {
       console.error('Error al refrescar stats:', err);
     }
-  }, []);
+  }, [currentUserId]);
 
   // Reordenar las listas (actualiza localmente y persiste en Supabase)
   const reorderLists = useCallback(async (newOrder) => {
@@ -113,7 +113,7 @@ export function useLists(currentUserId) {
     try {
       const updatedList = await db.updateList(listId, updates);
       // Refrescar stats de la lista después de actualizarla
-      const items = await db.getItemsByListId(listId);
+      const items = await db.getItemsByListId(listId, currentUserId);
       const total = items.length;
       const completed = items.filter((i) => i.completed).length;
       const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
@@ -143,7 +143,7 @@ export function useLists(currentUserId) {
       console.error('Error al actualizar lista:', err);
       throw new Error('No se pudo actualizar la lista.');
     }
-  }, []);
+  }, [currentUserId]);
 
   // Cargar las listas al montar o al cambiar de usuario
   useEffect(() => {
