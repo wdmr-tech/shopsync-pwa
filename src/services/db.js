@@ -7,10 +7,16 @@ export const db = {
   // --- OPERACIONES DE LISTAS ---
 
   // Obtiene todas las listas con sus ítems incluidos para calcular stats
-  getLists: async () => {
-    const { data, error } = await supabase
+  getLists: async (userId) => {
+    let query = supabase
       .from('lists')
-      .select('*, items(*)')
+      .select('*, items(*)');
+
+    if (userId) {
+      query = query.eq('user_id', userId);
+    }
+
+    const { data, error } = await query
       .order('sort_order', { ascending: true })
       .order('created_at', { ascending: false });
 
@@ -56,7 +62,7 @@ export const db = {
   },
 
   // Crea una nueva lista
-  createList: async (name, emoji = '📝', plannedDate = '') => {
+  createList: async (name, emoji = '📝', plannedDate = '', userId) => {
     // Primero, intentar incrementar sort_order vía RPC (más eficiente y atómico)
     const { error: rpcError } = await supabase.rpc('increment_sort_order_not_exists');
 
@@ -65,6 +71,7 @@ export const db = {
       const { data: existingLists } = await supabase
         .from('lists')
         .select('id, sort_order')
+        .eq('user_id', userId)
         .order('sort_order', { ascending: true });
 
       if (existingLists && existingLists.length > 0) {
@@ -87,6 +94,7 @@ export const db = {
         emoji: emoji || '📝',
         planned_date: plannedDate || null,
         sort_order: 0,
+        user_id: userId,
       })
       .select()
       .single();

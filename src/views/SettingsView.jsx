@@ -1,6 +1,7 @@
 import React from 'react';
+import { LogOut } from 'lucide-react';
 
-export function SettingsView() {
+export function SettingsView({ onLogout }) {
   return (
     <div className="flex-1 bg-slate-50 flex flex-col h-full overflow-hidden select-none">
       {/* Header */}
@@ -10,8 +11,18 @@ export function SettingsView() {
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto px-4 py-6 flex flex-col">
-        {/* Empty area to keep spacing consistent */}
-        <div className="flex-1" />
+        {/* Logout Button Container */}
+        <div className="flex-1 flex flex-col justify-start">
+          <button
+            onClick={onLogout}
+            className="w-full bg-red-50 hover:bg-red-100 text-red-600 font-semibold py-3.5 rounded-2xl transition-all flex items-center justify-between px-6 border border-red-100 active:scale-[0.99]"
+          >
+            <div className="flex items-center gap-3">
+              <LogOut size={18} className="text-red-500" />
+              <span className="text-sm">Cerrar sesión</span>
+            </div>
+          </button>
+        </div>
 
         {/* Info / Version / Credits */}
         <div className="mt-auto pt-8 pb-28 flex flex-col items-center justify-center text-center">

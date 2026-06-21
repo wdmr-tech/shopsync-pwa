@@ -13,6 +13,7 @@ import { COMMON_PRODUCTS, formatQuantityText, formatListDate } from './utils/pro
 import EmojiPicker from 'emoji-picker-react';
 import { CustomDatePickerModal } from './components/CustomDatePickerModal';
 import { SettingsView } from './views/SettingsView';
+import { LoginView } from './views/LoginView';
 
 const parseQuantityString = (qtyStr) => {
   if (!qtyStr) return { quantity: '', unit: '', customUnit: '' };
@@ -54,7 +55,29 @@ const parseQuantityString = (qtyStr) => {
 };
 
 function App() {
-  const { lists, loading: listsLoading, addList, removeList, reorderLists, updateList, refreshListStats } = useLists();
+  const [currentUser, setCurrentUser] = useState(() => {
+    try {
+      const savedUser = localStorage.getItem('shopsync_user');
+      return savedUser ? JSON.parse(savedUser) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  const { lists, loading: listsLoading, addList, removeList, reorderLists, updateList, refreshListStats } = useLists(currentUser?.id);
+
+  const handleLogin = (userId, userName) => {
+    const userData = { id: userId, name: userName };
+    setCurrentUser(userData);
+    localStorage.setItem('shopsync_user', JSON.stringify(userData));
+  };
+
+  const handleLogout = () => {
+    setCurrentUser(null);
+    localStorage.removeItem('shopsync_user');
+    setCurrentView('home');
+    setCurrentTab('lists');
+  };
   
   // 1. Estados de Navegación y Vistas
   const [currentTab, setCurrentTab] = useState('lists'); // 'lists' | 'explore' | 'settings'
@@ -314,8 +337,11 @@ function App() {
 
       {/* Mobile Viewport Container */}
       <div className="w-full max-w-md h-[100dvh] bg-white shadow-2xl flex flex-col overflow-hidden relative border-x border-slate-200">
-        
-        {/* Renderizado de Vistas según Navegación */}
+        {!currentUser ? (
+          <LoginView onLogin={handleLogin} />
+        ) : (
+          <>
+            {/* Renderizado de Vistas según Navegación */}
         <div className="flex-1 min-h-0 flex flex-col">
           {currentTab === 'lists' ? (
             currentView === 'home' ? (
@@ -375,7 +401,7 @@ function App() {
               />
             )
           ) : currentTab === 'settings' ? (
-            <SettingsView />
+            <SettingsView onLogout={handleLogout} />
           ) : (
             <div className="flex-1 flex items-center justify-center text-gray-500 font-semibold select-none">
               Próximamente...
@@ -713,6 +739,8 @@ function App() {
             </motion.div>
           )}
         </AnimatePresence>
+          </>
+        )}
 
       </div>
 

@@ -1,16 +1,17 @@
 import { useState, useEffect, useCallback } from 'react';
 import { db } from '../services/db';
 
-export function useLists() {
+export function useLists(currentUserId) {
   const [lists, setLists] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   // Carga inicial de listas — db.getLists() ya devuelve listas enriquecidas con items y stats
   const fetchLists = useCallback(async () => {
+    if (!currentUserId) return;
     try {
       setLoading(true);
-      const data = await db.getLists();
+      const data = await db.getLists(currentUserId);
       setLists(data);
       setError(null);
     } catch (err) {
@@ -24,7 +25,7 @@ export function useLists() {
   // Agregar una lista
   const addList = useCallback(async (name, emoji, plannedDate = '', templateItems = []) => {
     try {
-      const newList = await db.createList(name, emoji, plannedDate);
+      const newList = await db.createList(name, emoji, plannedDate, currentUserId);
       
       let items = [];
       if (templateItems && templateItems.length > 0) {
@@ -143,10 +144,15 @@ export function useLists() {
     }
   }, []);
 
-  // Cargar las listas al montar
+  // Cargar las listas al montar o al cambiar de usuario
   useEffect(() => {
-    fetchLists();
-  }, [fetchLists]);
+    if (currentUserId) {
+      fetchLists();
+    } else {
+      setLists([]);
+      setLoading(false);
+    }
+  }, [fetchLists, currentUserId]);
 
   return {
     lists,
