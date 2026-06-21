@@ -13,7 +13,6 @@ import { COMMON_PRODUCTS, formatQuantityText, formatListDate } from './utils/pro
 import EmojiPicker from 'emoji-picker-react';
 import { CustomDatePickerModal } from './components/CustomDatePickerModal';
 import { SettingsView } from './views/SettingsView';
-import { triggerHaptic } from './utils/haptics';
 
 const parseQuantityString = (qtyStr) => {
   if (!qtyStr) return { quantity: '', unit: '', customUnit: '' };
@@ -225,7 +224,6 @@ function App() {
           emoji: newListEmoji,
           plannedDate: listDate
         });
-        triggerHaptic(30);
         setListToEdit(null);
       } else {
         const templateItems = listToClone
@@ -236,7 +234,6 @@ function App() {
           : (listToEdit?.templateItems || []);
 
         const newList = await addList(newListName.trim(), newListEmoji, listDate, templateItems);
-        triggerHaptic(30);
         setListToEdit(null);
         setListToClone(null);
         setSelectedTemplate(null); // Cerrar el detalle de la plantilla si estaba abierto

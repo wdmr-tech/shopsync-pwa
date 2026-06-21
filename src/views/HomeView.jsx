@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from 'react';
 import { Plus, GripVertical, Trash2, AlertTriangle, Calendar } from 'lucide-react';
 import { motion, AnimatePresence, useAnimation, Reorder, useDragControls } from 'framer-motion';
 import { getListStatus } from '../utils/productDictionary';
-import { triggerHaptic } from '../utils/haptics';
 
 
 
@@ -157,6 +156,7 @@ function ListCard({ list, onClick, onSwipeDelete, onDragHandleDown }) {
 // ─── Componente Envoltorio para manejar el Arrastre (Drag) ─────────────────────
 function DraggableListCard({ list, activeFilter, onClick, onSwipeDelete }) {
   const dragControls = useDragControls();
+  const [isDragging, setIsDragging] = useState(false);
 
   return (
     <Reorder.Item 
@@ -164,15 +164,18 @@ function DraggableListCard({ list, activeFilter, onClick, onSwipeDelete }) {
       id={list.id}
       dragListener={false} // Desactiva el arrastre en toda la tarjeta
       dragControls={dragControls} // Asigna los controles manuales
+      onDragStart={() => setIsDragging(true)}
+      onDragEnd={() => setIsDragging(false)}
       className="relative mb-3 rounded-2xl bg-transparent"
-      whileDrag={{ 
-        scale: 1.02, 
-        boxShadow: "0px 10px 20px rgba(15, 98, 254, 0.15)", // Sombra azul sutil
-        zIndex: 50 // Asegura que quede por encima de las demás
-      }}
       layout
       initial={{ opacity: 0, x: 8 }}
-      animate={{ opacity: 1, x: 0 }}
+      animate={{
+        opacity: 1,
+        x: 0,
+        scale: isDragging ? 1.02 : 1,
+        boxShadow: isDragging ? "0px 10px 20px rgba(15, 98, 254, 0.15)" : "0px 1px 2px rgba(0, 0, 0, 0.05)",
+        zIndex: isDragging ? 50 : 1
+      }}
       exit={{ opacity: 0, x: -8 }}
       transition={{ 
         duration: 0.2,
@@ -357,7 +360,6 @@ export function HomeView({ lists, loading, removeList, onSelectList, onCreateLis
               key={filter}
               onClick={() => {
                 setActiveFilter(filter);
-                triggerHaptic(30);
               }}
               className={`shrink-0 px-4 py-2 rounded-full text-xs font-medium whitespace-nowrap transition-colors flex items-center justify-center ${
                 activeFilter === filter
@@ -407,9 +409,6 @@ export function HomeView({ lists, loading, removeList, onSelectList, onCreateLis
 
             if (newIndex !== currentIndex) {
               setActiveFilter(FILTERS[newIndex]);
-
-              // Activar Haptic Feedback (Vibración súper corta de 30ms para que se sienta como un 'clic')
-              triggerHaptic(30);
             }
           }
         }}

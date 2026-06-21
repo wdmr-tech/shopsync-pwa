@@ -12,7 +12,6 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence, useAnimation } from 'framer-motion';
 import { getCategoryForProduct, formatListDate, getListStatus, formatQuantityText } from '../utils/productDictionary';
-import { triggerHaptic } from '../utils/haptics';
 import { CustomDatePickerModal } from '../components/CustomDatePickerModal';
 
 const ItemCard = ({ item, toggleItem, setItemToDelete, setItemToEdit }) => {
@@ -142,6 +141,51 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
     }
   }, []);
 
+  // Refs para evitar clausuras obsoletas en el callback del popstate
+  const listRef = useRef(list);
+  const itemsRef = useRef(items);
+  useEffect(() => {
+    listRef.current = list;
+    itemsRef.current = items;
+  });
+
+  // Interceptar el botón de atrás físico / Hardware Back Button
+  useEffect(() => {
+    // 1. Al montar el componente, añadimos un estado al historial del navegador
+    window.history.pushState({ isInsideList: true }, '');
+
+    // 2. Definimos qué hacer cuando el usuario presiona "Atrás" (botón físico o gesto de borde del SO)
+    const handlePopState = (event) => {
+      // Evita que el navegador cierre la PWA
+      event.preventDefault(); 
+      
+      // Ejecutamos nuestra lógica de salir de la lista
+      try {
+        if (typeof setActiveTab === 'function') {
+          const currentStatus = getListStatus({ ...listRef.current, items: itemsRef.current });
+          const tabToSelect = currentStatus === 'en progreso' ? 'En progreso' 
+                            : currentStatus === 'completada' ? 'Completadas' 
+                            : 'Pendientes';
+          setActiveTab(tabToSelect);
+        }
+        if (typeof onBack === 'function') onBack();
+      } catch (err) {
+        if (typeof onBack === 'function') onBack();
+      }
+    };
+
+    // 3. Escuchamos el evento 'popstate' que lanza el botón Atrás
+    window.addEventListener('popstate', handlePopState);
+
+    // 4. Limpieza al desmontar el componente (por si salen usando tu botón del header)
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+      if (window.history.state?.isInsideList) {
+        window.history.back();
+      }
+    };
+  }, []);
+
   const totalItems = items?.length || 0;
   const completedItems = items?.filter(item => item.completed)?.length || 0;
   const progressPercentage = totalItems === 0 ? 0 : (completedItems / totalItems) * 100;
@@ -191,7 +235,6 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
   const handleConfirmCompletion = async () => {
     setIsListCompleted(true);
     setShowCompleteModal(false);
-    triggerHaptic(30);
     if (onCompleteList) {
       await onCompleteList();
     }
@@ -229,9 +272,6 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
         const isRightSwipe = distance > 100; // Umbral de 100px para volver atrás
 
         if (isRightSwipe) {
-          // Activar Haptic Feedback (Vibración súper corta de 30ms)
-          triggerHaptic(30);
-
           setIsExiting(true);
           setTimeout(() => {
             try {

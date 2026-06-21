@@ -1,6 +1,5 @@
 import { LayoutList, Compass, Settings } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { triggerHaptic } from '../utils/haptics';
 
 export function BottomNavBar({ currentTab, setCurrentTab }) {
   const tabs = [
@@ -18,10 +17,7 @@ export function BottomNavBar({ currentTab, setCurrentTab }) {
         return (
           <button
             key={tab.id}
-            onClick={() => {
-              setCurrentTab(tab.id);
-              triggerHaptic(30);
-            }}
+            onClick={() => setCurrentTab(tab.id)}
             className={`flex flex-col items-center justify-center flex-1 py-1 transition-colors ${
               isActive ? 'text-[#0f62fe]' : 'text-gray-400'
             }`}
