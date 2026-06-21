@@ -616,6 +616,7 @@ export function HomeView({ lists, loading, removeList, onSelectList, onCreateLis
           >
             <AnimatePresence mode="popLayout">
               {filteredLists.map((list) => {
+                if (!list) return null; // Protección anti-crash
                 return (
                   <DraggableListCard
                     key={`${activeFilter}-${list.id}`}

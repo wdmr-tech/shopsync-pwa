@@ -12,7 +12,9 @@ import {
   Copy,
   Globe,
   Bell,
-  MoreVertical
+  MoreVertical,
+  Mic,
+  Loader2
 } from 'lucide-react';
 import { motion, AnimatePresence, useAnimation } from 'framer-motion';
 import { getCategoryForProduct, formatListDate, getListStatus, formatQuantityText } from '../utils/productDictionary';
@@ -161,7 +163,7 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
     itemsRef.current = items;
   }, [list, items]);
 
-
+  if (!list) return null;
 
   const totalItems = items?.length || 0;
   const completedItems = items?.filter(item => item.completed)?.length || 0;
