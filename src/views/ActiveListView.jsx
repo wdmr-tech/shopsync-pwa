@@ -161,39 +161,7 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
     itemsRef.current = items;
   }, [list, items]);
 
-  // Interceptar el botón de atrás físico / Hardware Back Button
-  useEffect(() => {
-    // 1. Al montar el componente, añadimos un estado al historial del navegador
-    window.history.pushState({ isInsideList: true }, '');
 
-    // 2. Definimos qué hacer cuando el usuario presiona "Atrás" (botón físico o gesto de borde del SO)
-    const handlePopState = (event) => {
-      // Evita que el navegador cierre la PWA
-      event.preventDefault(); 
-      
-      // Ejecutamos nuestra lógica de salir de la lista
-      try {
-        if (typeof setActiveTab === 'function') {
-          const currentStatus = getListStatus({ ...listRef.current, items: itemsRef.current });
-          const tabToSelect = currentStatus === 'en progreso' ? 'En progreso' 
-                            : currentStatus === 'completada' ? 'Completadas' 
-                            : 'Pendientes';
-          setActiveTab(tabToSelect);
-        }
-        if (typeof onBack === 'function') onBack();
-      } catch (err) {
-        if (typeof onBack === 'function') onBack();
-      }
-    };
-
-    // 3. Escuchamos el evento 'popstate' que lanza el botón Atrás
-    window.addEventListener('popstate', handlePopState);
-
-    // 4. Limpieza al desmontar el componente (SOLO remover el listener, sin window.history.back())
-    return () => {
-      window.removeEventListener('popstate', handlePopState);
-    };
-  }, []);
 
   const totalItems = items?.length || 0;
   const completedItems = items?.filter(item => item.completed)?.length || 0;
@@ -282,7 +250,19 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
 
         if (isRightSwipe) {
           if (typeof triggerHaptic === 'function') triggerHaptic(30);
-          window.history.back(); // Esto disparará el popstate y cerrará la vista
+          
+          try {
+            if (typeof setActiveTab === 'function') {
+              const currentStatus = getListStatus({ ...listRef.current, items: itemsRef.current });
+              const tabToSelect = currentStatus === 'en progreso' ? 'En progreso' 
+                                : currentStatus === 'completada' ? 'Completadas' 
+                                : 'Pendientes';
+              setActiveTab(tabToSelect);
+            }
+            if (typeof onBack === 'function') onBack();
+          } catch (err) {
+            if (typeof onBack === 'function') onBack();
+          }
         }
       }}
     >
@@ -310,9 +290,23 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
         <div className="flex items-center space-x-3 min-w-0 w-full">
           {/* Botón Retroceso */}
           <button 
-            onClick={() => window.history.back()}
-            className="p-2 -ml-2 text-gray-600 hover:bg-gray-100 rounded-full transition-colors shrink-0"
-            aria-label="Volver al inicio"
+            onClick={() => {
+              try {
+                // 1. Sincronizar el filtro de la Home
+                if (typeof setActiveTab === 'function') {
+                  const currentStatus = getListStatus({ ...listRef.current, items: itemsRef.current });
+                  const tabToSelect = currentStatus === 'en progreso' ? 'En progreso' 
+                                    : currentStatus === 'completada' ? 'Completadas' 
+                                    : 'Pendientes';
+                  setActiveTab(tabToSelect);
+                }
+                // 2. Cerrar la vista
+                if (typeof onBack === 'function') onBack();
+              } catch (err) {
+                if (typeof onBack === 'function') onBack();
+              }
+            }}
+            className="p-2 -ml-2 text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
           >
             <ChevronLeft size={24} />
           </button>
