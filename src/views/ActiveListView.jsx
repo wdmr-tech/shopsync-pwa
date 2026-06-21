@@ -8,7 +8,8 @@ import {
   ShoppingBag,
   Calendar,
   Edit2,
-  ArrowRight
+  ArrowRight,
+  Copy
 } from 'lucide-react';
 import { motion, AnimatePresence, useAnimation } from 'framer-motion';
 import { getCategoryForProduct, formatListDate, getListStatus, formatQuantityText } from '../utils/productDictionary';
@@ -93,7 +94,7 @@ const ItemCard = ({ item, toggleItem, setItemToDelete, setItemToEdit }) => {
   );
 };
 
-export function ActiveListView({ list, onBack, onAddProductClick, itemsState, onCompleteList, updateList, setActiveTab, setItemToEdit, onEditList, showToast }) {
+export function ActiveListView({ list, onBack, onAddProductClick, itemsState, onCompleteList, updateList, setActiveTab, setItemToEdit, onEditList, showToast, onDuplicateList }) {
   const {
     items,
     allItems,
@@ -344,42 +345,52 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
         </div>
 
         {/* Debajo de la barra de progreso */}
-        {(!isListCompleted || list?.plannedDate || list?.date) && (
-          <div className="flex items-center justify-between mt-3">
-            {/* Izquierda: Botón Completar */}
-            <div>
-              {!isListCompleted && (
-                <button 
-                  onClick={() => { setModalType('manual'); setShowCompleteModal(true); }}
-                  className="text-[#0f62fe] font-semibold text-sm tracking-wide active:opacity-70 flex items-center gap-1.5 py-1"
-                >
-                  <CheckCircle2 size={16} />
-                  Completar
-                </button>
-              )}
-            </div>
+        <div className="flex items-center justify-between mt-3">
+          {/* Izquierda: Botón Completar y Duplicar */}
+          <div className="flex items-center gap-4">
+            {!isListCompleted && (
+              <button 
+                onClick={() => { setModalType('manual'); setShowCompleteModal(true); }}
+                className="text-[#0f62fe] font-semibold text-sm tracking-wide active:opacity-70 flex items-center gap-1.5 py-1"
+              >
+                <CheckCircle2 size={16} />
+                Completar
+              </button>
+            )}
             
-            {/* Derecha: Fecha de Compra (tu código actual del botón de fecha) */}
-            <div>
-              {(list?.plannedDate || list?.date) && (
-                <button 
-                  type="button"
-                  onClick={() => {
-                    setTempDate(list?.plannedDate || list?.date || ''); // Carga la fecha actual en el estado temporal
-                    setShowDateModal(true);
-                  }}
-                  className="flex items-center gap-1.5 leading-none bg-blue-50/50 px-3 py-2 rounded-md cursor-pointer hover:bg-blue-50 active:bg-blue-100 transition-colors"
-                >
-                  <Calendar size={13} className="text-blue-400" />
-                  <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">
-                    {formatListDate(list?.plannedDate || list?.date)}
-                  </span>
-                  <Edit2 size={10} className="text-gray-400 ml-1" />
-                </button>
-              )}
-            </div>
+            <button 
+              onClick={() => {
+                if (typeof onDuplicateList === 'function') {
+                  onDuplicateList({ ...listRef.current, items: itemsRef.current });
+                }
+              }}
+              className="text-gray-500 hover:text-[#0f62fe] font-semibold text-sm tracking-wide active:opacity-70 flex items-center gap-1.5 py-1 transition-colors"
+            >
+              <Copy size={16} />
+              Duplicar
+            </button>
           </div>
-        )}
+          
+          {/* Derecha: Fecha de Compra (tu código actual del botón de fecha) */}
+          <div>
+            {(list?.plannedDate || list?.date) && (
+              <button 
+                type="button"
+                onClick={() => {
+                  setTempDate(list?.plannedDate || list?.date || ''); // Carga la fecha actual en el estado temporal
+                  setShowDateModal(true);
+                }}
+                className="flex items-center gap-1.5 leading-none bg-blue-50/50 px-3 py-2 rounded-md cursor-pointer hover:bg-blue-50 active:bg-blue-100 transition-colors"
+              >
+                <Calendar size={13} className="text-blue-400" />
+                <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">
+                  {formatListDate(list?.plannedDate || list?.date)}
+                </span>
+                <Edit2 size={10} className="text-gray-400 ml-1" />
+              </button>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Listado Scrolleable */}

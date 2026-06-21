@@ -383,6 +383,9 @@ function App() {
                 setItemToEdit={setEditingItem}
                 onEditList={setListToEdit}
                 showToast={showToast}
+                onDuplicateList={(listWithItems) => {
+                  setListToClone(listWithItems);
+                }}
               />
             )
           ) : currentTab === 'explore' ? (
@@ -429,7 +432,7 @@ function App() {
                 setListDate('');
                 setShowEmojiPicker(false);
               }}
-              title={listToClone ? 'COPIAR LISTA' : listToEdit?.id ? 'EDITAR LISTA' : 'CREAR NUEVA LISTA'}
+              title={listToClone ? (listToClone.author ? 'COPIAR LISTA' : 'DUPLICAR LISTA') : listToEdit?.id ? 'EDITAR LISTA' : 'CREAR NUEVA LISTA'}
             >
               <form onSubmit={handleSaveList} className="space-y-4 px-1 pt-1 pb-4">
                 {/* 1. Nombre de la lista */}
