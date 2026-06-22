@@ -97,7 +97,7 @@ const ItemCard = ({ item, toggleItem, setItemToDelete, setItemToEdit }) => {
   );
 };
 
-export function ActiveListView({ list, onBack, onAddProductClick, itemsState, onCompleteList, updateList, setActiveTab, setItemToEdit, onEditList, showToast, onDuplicateList, onPublishList }) {
+export function ActiveListView({ list, onBack, onAddProductClick, itemsState, onCompleteList, updateList, setActiveTab, setItemToEdit, onEditList, showToast, onDuplicateList, onPublishList, communityLists = [], onUnpublishList }) {
   const {
     items,
     allItems,
@@ -133,6 +133,22 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
 
   // Estado para menú kebab
   const [showMenu, setShowMenu] = useState(false);
+  const menuRef = useRef(null);
+  const isPublished = communityLists.some(cl => cl.original_list_id === list?.id);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setShowMenu(false);
+      }
+    };
+    if (showMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showMenu]);
 
 
   const touchStartX = useRef(null);
@@ -322,8 +338,7 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
             </button>
           </div>
 
-          {/* Derecha: Menú Kebab */}
-          <div className="relative shrink-0">
+          <div ref={menuRef} className="relative shrink-0">
             <button 
               onClick={() => setShowMenu(!showMenu)}
               className="p-2 text-gray-500 hover:bg-gray-100 rounded-full transition-colors"
@@ -345,12 +360,25 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
                   >
                     <Copy size={16} className="text-gray-400" /> Duplicar Lista
                   </button>
-                  <button 
-                    onClick={() => { setShowMenu(false); setShowShareModal(true); }}
-                    className="px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-2 text-left"
-                  >
-                    <Globe size={16} className="text-[#0f62fe]" /> Publicar
-                  </button>
+
+                  {!isPublished ? (
+                    <button 
+                      onClick={() => { setShowMenu(false); setShowShareModal(true); }}
+                      className="px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-2 text-left"
+                    >
+                      <Globe size={16} className="text-[#0f62fe]" /> Publicar
+                    </button>
+                  ) : (
+                    <button 
+                      onClick={() => { 
+                        setShowMenu(false); 
+                        if (typeof onUnpublishList === 'function') onUnpublishList(list.id); 
+                      }}
+                      className="px-4 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 flex items-center gap-2 text-left"
+                    >
+                      <Trash2 size={16} className="text-red-500" /> Despublicar
+                    </button>
+                  )}
                 </motion.div>
               )}
             </AnimatePresence>
@@ -721,18 +749,23 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider pl-1 mb-1 block">Categoría</label>
-                  <select 
-                    value={shareCategory} 
-                    onChange={(e) => setShareCategory(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3.5 text-sm focus:outline-none focus:border-[#0f62fe] focus:bg-white transition-all font-semibold outline-none"
-                  >
-                    <option value="Recetas">Recetas</option>
-                    <option value="Viajes">Viajes</option>
-                    <option value="Hogar">Hogar</option>
-                    <option value="Eventos">Eventos</option>
-                    <option value="Otros">Otros</option>
-                  </select>
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-2">Categoría</label>
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    {['Recetas', 'Viajes', 'Hogar', 'Eventos', 'Otros'].map((cat) => (
+                      <button
+                        key={cat}
+                        type="button"
+                        onClick={() => setShareCategory(cat)}
+                        className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors border ${
+                          shareCategory === cat 
+                            ? 'bg-[#0f62fe] text-white border-[#0f62fe]' 
+                            : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+                        }`}
+                      >
+                        {cat}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
 

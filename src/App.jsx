@@ -130,6 +130,7 @@ function App() {
 
     const publishedList = {
       id: `pub_${Date.now()}`,
+      original_list_id: listData.id,
       name: listData.name,
       emoji: listData.emoji || '🛒',
       description: description,
@@ -149,6 +150,19 @@ function App() {
     });
 
     showToast('Lista publicada en Explorar');
+  };
+
+  const handleUnpublishList = (originalListId) => {
+    setCommunityLists((prev) => {
+      const updated = prev.filter(cl => cl.original_list_id !== originalListId);
+      try {
+        localStorage.setItem('shopsync_community_lists', JSON.stringify(updated));
+      } catch (err) {
+        console.error('Error al guardar en localStorage:', err);
+      }
+      return updated;
+    });
+    showToast('Lista despublicada');
   };
 
   // Filtro de listas para HomeView
@@ -441,6 +455,8 @@ function App() {
                   setListToClone(listWithItems);
                 }}
                 onPublishList={handlePublishList}
+                communityLists={communityLists}
+                onUnpublishList={handleUnpublishList}
               />
             )
           ) : currentTab === 'explore' ? (
