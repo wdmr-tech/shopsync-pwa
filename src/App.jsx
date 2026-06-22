@@ -373,7 +373,11 @@ function App() {
               transition={{ duration: 0.5, delay: 0.15 }}
               className="flex flex-col items-center"
             >
-              <div className="text-6xl mb-4 select-none">🛒</div>
+              <img 
+                src="/shopsync-logo.svg" 
+                alt="ShopSync Logo" 
+                className="w-24 h-24 mb-4 object-contain"
+              />
               <h1 className="text-4xl font-bold tracking-tight">ShopSync</h1>
             </motion.div>
             

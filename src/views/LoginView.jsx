@@ -39,24 +39,14 @@ export function LoginView({ onLogin }) {
       <div className="w-full max-w-sm flex flex-col justify-center py-4">
         {/* Logo and Welcome Area */}
         <div className="flex flex-col items-center justify-center mb-6">
-          <div className="flex flex-col items-center justify-center mb-4">
+          <div className="flex flex-col items-center justify-center mb-4 text-center">
             <img 
-              src="/shopsync_login.png" 
+              src="/shopsync-logo.svg" 
               alt="ShopSync Logo" 
-              className="w-64 h-auto object-contain" 
-              onError={(e) => {
-                // Fallback por si la imagen no carga inmediatamente en el entorno
-                e.target.style.display = 'none';
-                e.target.nextSibling.style.display = 'flex';
-              }}
+              className="w-20 h-20 rounded-2xl object-contain mb-3 shadow-md shadow-[#0f62fe]/10" 
             />
-            {/* Fallback visual (solo se muestra si la imagen falla) */}
-            <div style={{ display: 'none' }} className="flex-col items-center">
-              <div className="w-16 h-16 bg-[#0f62fe] rounded-2xl flex items-center justify-center mb-4">
-                <ShoppingBasket size={32} color="white" />
-              </div>
-              <h1 className="text-3xl font-extrabold text-[#0f62fe] tracking-tight">ShopSync</h1>
-            </div>
+            <h1 className="text-3xl font-extrabold text-[#0f62fe] tracking-tight">ShopSync</h1>
+            <p className="text-sm text-slate-500 font-medium mt-1">La aplicación ergonómica de compras</p>
           </div>
         </div>
 
