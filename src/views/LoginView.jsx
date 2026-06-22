@@ -38,16 +38,12 @@ export function LoginView({ onLogin }) {
     <div className="min-h-[100dvh] w-full flex flex-col items-center justify-center p-6 bg-white overflow-y-auto select-none">
       <div className="w-full max-w-sm flex flex-col justify-center py-4">
         {/* Logo and Welcome Area */}
-        <div className="flex flex-col items-center justify-center mb-6">
-          <div className="flex flex-col items-center justify-center mb-4 text-center">
-            <img 
-              src="/shopsync-logo.svg" 
-              alt="ShopSync Logo" 
-              className="w-20 h-20 rounded-2xl object-contain mb-3 shadow-md shadow-[#0f62fe]/10" 
-            />
-            <h1 className="text-3xl font-extrabold text-[#0f62fe] tracking-tight">ShopSync</h1>
-            <p className="text-sm text-slate-500 font-medium mt-1">La aplicación ergonómica de compras</p>
-          </div>
+        <div className="flex flex-col items-center justify-center mb-8">
+          <img 
+            src="/shopsync_login.png" 
+            alt="ShopSync Logo" 
+            className="w-56 md:w-64 h-auto object-contain" 
+          />
         </div>
 
         {/* Form Container */}
@@ -108,9 +104,6 @@ export function LoginView({ onLogin }) {
           </form>
         </div>
       </div>
-      <p className="mt-8 text-xs font-semibold text-gray-400">
-        ShopSync v1.2.0
-      </p>
     </div>
   );
 }
