@@ -42,6 +42,6 @@ export const generateListWithGemini = async (userPrompt) => {
     return JSON.parse(text); // Devuelve el objeto estructurado
   } catch (error) {
     console.error("Error en Gemini API:", error);
-    throw new Error("No se pudo generar la lista");
+    throw new Error(error.message || "No se pudo generar la lista");
   }
 };
