@@ -37,7 +37,10 @@ const getItemQuantity = (item) => {
   }
   if (item.quantity) {
     const match = item.quantity.toString().match(/\d+/);
-    return match ? parseInt(match[0], 10) : 1;
+    if (match) {
+      const qty = parseInt(match[0], 10);
+      return qty > 20 ? 1 : qty;
+    }
   }
   return 1;
 };
@@ -171,18 +174,20 @@ const ItemCard = ({
           {isShoppingMode && item.completed && !isFocused && (
             <button 
               onClick={(e) => { e.stopPropagation(); onFocus(item); }}
-              className="w-20 h-[34px] bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold flex items-center justify-center transition-all active:scale-95 border border-slate-200 shrink-0"
+              className="p-2 text-[#0f62fe] hover:opacity-85 shrink-0 active:scale-95 transition-all"
+              aria-label="Editar"
             >
-              Editar
+              <Edit2 size={18} />
             </button>
           )}
 
           {!item.completed && !isShoppingMode && (
             <button 
               onClick={(e) => { e.stopPropagation(); setItemToEdit(item); }}
-              className="w-20 h-[34px] bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold flex items-center justify-center transition-all active:scale-95 border border-slate-200 shrink-0"
+              className="p-2 text-[#0f62fe] hover:opacity-85 shrink-0 active:scale-95 transition-all"
+              aria-label="Editar"
             >
-              Editar
+              <Edit2 size={18} />
             </button>
           )}
         </div>

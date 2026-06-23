@@ -110,6 +110,27 @@ function App() {
   const [aiDate, setAiDate] = useState('');
   const [aiReminder, setAiReminder] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const LOADING_PHRASES = [
+    "Generando tu lista...",
+    "Haciendo magia...",
+    "Ya casi estamos...",
+    "Sólo un poco más...",
+    "Clasificando productos...",
+    "Casi listo..."
+  ];
+  const [loadingPhraseIndex, setLoadingPhraseIndex] = useState(0);
+
+  useEffect(() => {
+    let interval;
+    if (isGenerating) {
+      setLoadingPhraseIndex(0);
+      interval = setInterval(() => {
+        setLoadingPhraseIndex((prev) => (prev + 1) % LOADING_PHRASES.length);
+      }, 2000);
+    }
+    return () => clearInterval(interval);
+  }, [isGenerating]);
+
   const [showAICustomDatePicker, setShowAICustomDatePicker] = useState(false);
 
   // Estado para Toasts / Snackbars
@@ -259,6 +280,7 @@ function App() {
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
+  const [itemToDeleteFromSheet, setItemToDeleteFromSheet] = useState(null);
 
   // Estados y lógica de dictado de voz para el BottomSheet
   const [isListening, setIsListening] = useState(false);
@@ -741,28 +763,10 @@ function App() {
                     <span>Editar Producto</span>
                     <button
                       type="button"
-                      onClick={async () => {
-                        if (window.confirm('¿Seguro que quieres eliminar este producto?')) {
-                          try {
-                            await activeListItemsState.removeItem(editingItem.id);
-                            showToast('Producto eliminado');
-                            setBottomSheet(null);
-                            setProductName('');
-                            setProductQuantity('');
-                            setProductUnit('');
-                            setCustomUnit('');
-                            setShowDetails(false);
-                            setShowSuggestions(false);
-                            setSuggestions([]);
-                            setEditingItem(null);
-                          } catch (err) {
-                            alert('No se pudo eliminar el producto.');
-                          }
-                        }
-                      }}
-                      className="text-xs font-bold text-red-500 hover:text-red-700 active:scale-95 transition-all normal-case cursor-pointer"
+                      onClick={() => setItemToDeleteFromSheet(editingItem)}
+                      className="text-xs font-bold text-red-500 hover:text-red-700 active:scale-95 transition-all uppercase cursor-pointer"
                     >
-                      Eliminar producto
+                      ELIMINAR PRODUCTO
                     </button>
                   </div>
                 ) : (
@@ -1046,10 +1050,14 @@ function App() {
                   }`}
                 >
                   {isGenerating ? (
-                    <>
-                      <Loader2 className="animate-spin" size={18} />
-                      Generando tu lista...
-                    </>
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-1">
+                        <span className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                        <span className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                        <span className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                      </div>
+                      <span>{LOADING_PHRASES[loadingPhraseIndex]}</span>
+                    </div>
                   ) : (
                     <>
                       <Wand2 size={18} />
@@ -1079,6 +1087,77 @@ function App() {
         onSelectDate={(date) => setAiDate(date)}
         currentDate={aiDate}
       />
+
+      {/* Modal de confirmación para eliminar producto desde BottomSheet */}
+      <AnimatePresence>
+        {itemToDeleteFromSheet && (
+          <>
+            {/* Backdrop de fondo */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setItemToDeleteFromSheet(null)}
+              className="fixed inset-0 bg-black/45 backdrop-blur-[1px] z-[60] cursor-pointer"
+            />
+
+            {/* Contenedor del Dialog */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              onClick={(e) => e.stopPropagation()}
+              className="fixed top-1/2 left-5 right-5 -translate-y-1/2 bg-white rounded-3xl p-6 shadow-2xl z-[70] flex flex-col space-y-4 max-w-sm mx-auto border border-slate-100"
+            >
+              <div className="space-y-1.5 flex flex-col items-center">
+                <div className="w-12 h-12 bg-red-50 text-red-500 rounded-full flex items-center justify-center mb-2">
+                  <Trash2 size={24} />
+                </div>
+                <h3 className="font-bold text-slate-800 text-lg text-center">¿Eliminar producto?</h3>
+                <p className="text-sm text-slate-500 font-medium text-center">
+                  Esta acción eliminará "{itemToDeleteFromSheet.name}" de la lista y no se puede deshacer.
+                </p>
+              </div>
+
+              <div className="flex space-x-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setItemToDeleteFromSheet(null)}
+                  className="flex-1 h-11 bg-slate-50 hover:bg-slate-100 text-slate-600 font-semibold text-sm rounded-xl transition-colors cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      await activeListItemsState.removeItem(itemToDeleteFromSheet.id);
+                      showToast('Producto eliminado');
+                      setBottomSheet(null);
+                      setProductName('');
+                      setProductQuantity('');
+                      setProductUnit('');
+                      setCustomUnit('');
+                      setShowDetails(false);
+                      setShowSuggestions(false);
+                      setSuggestions([]);
+                      setEditingItem(null);
+                    } catch (err) {
+                      alert('No se pudo eliminar el producto.');
+                    } finally {
+                      setItemToDeleteFromSheet(null);
+                    }
+                  }}
+                  className="flex-1 h-11 bg-red-500 hover:bg-red-600 text-white font-semibold text-sm rounded-xl transition-colors cursor-pointer"
+                >
+                  Eliminar
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
