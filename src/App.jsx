@@ -466,11 +466,10 @@ function App() {
               className="flex flex-col items-center"
             >
               <img 
-                src="/shopsync-logo.svg" 
+                src="/pwa-512x512.png" 
                 alt="ShopSync Logo" 
-                className="w-24 h-24 mb-4 object-contain"
+                className="w-56 h-56 object-contain"
               />
-              <h1 className="text-4xl font-bold tracking-tight">ShopSync</h1>
             </motion.div>
             
             <div className="w-28 h-1 bg-white/20 rounded-full mt-10 overflow-hidden relative">
@@ -970,16 +969,19 @@ function App() {
                 {/* Modal Drag Handle */}
                 <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto mb-4 shrink-0" />
 
-                <div className="flex justify-between items-center mb-6 shrink-0">
-                  <div className="flex items-center gap-2">
-                    <Sparkles className="text-purple-500" size={24} />
-                    <h2 className="text-xl font-bold text-gray-900">Crea tu lista más rápido con IA</h2>
+                <div className="flex justify-between items-start mb-6 shrink-0">
+                  <div className="flex gap-2">
+                    <Sparkles className="text-purple-500 mt-1 shrink-0" size={24} />
+                    <div>
+                      <h2 className="text-xl font-bold text-gray-900 leading-tight">Crea tu lista más rápido</h2>
+                      <p className="text-xs text-gray-500 mt-1">Podrás editarla una vez creada</p>
+                    </div>
                   </div>
                   <button 
                     type="button"
                     onClick={() => !isGenerating && setShowAIGenerator(false)} 
                     disabled={isGenerating}
-                    className="p-2 bg-gray-100 hover:bg-gray-200 rounded-full text-gray-500 transition-colors disabled:opacity-50"
+                    className="p-2 bg-gray-100 hover:bg-gray-200 rounded-full text-gray-500 transition-colors disabled:opacity-50 shrink-0"
                   >
                     <X size={20} />
                   </button>
@@ -1061,7 +1063,7 @@ function App() {
                   ) : (
                     <>
                       <Wand2 size={18} />
-                      Crear lista automática
+                      Crear lista
                     </>
                   )}
                 </button>
