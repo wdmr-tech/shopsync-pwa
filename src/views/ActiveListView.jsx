@@ -22,11 +22,19 @@ const formatPrice = (amount) => {
   return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(amount);
 };
 
-const ItemCard = ({ item, toggleItem, setItemToDelete, setItemToEdit, isShoppingMode }) => {
+const ItemCard = ({ item, toggleItem, setItemToDelete, setItemToEdit, isShoppingMode, updateItem }) => {
   const controls = useAnimation();
   const isDragging = useRef(false);
 
+  const [price, setPrice] = useState(item.price || '');
+  const [realQty, setRealQty] = useState(item.real_quantity || 1);
+
   useEffect(() => { controls.start({ x: 0 }); }, [item.id, controls]);
+
+  useEffect(() => {
+    setPrice(item.price || '');
+    setRealQty(item.real_quantity || 1);
+  }, [item.price, item.real_quantity]);
 
   const handleDragEnd = (event, info) => {
     setTimeout(() => { isDragging.current = false; }, 150);
@@ -35,6 +43,12 @@ const ItemCard = ({ item, toggleItem, setItemToDelete, setItemToEdit, isShopping
       setItemToDelete(item.id);
     }
     controls.start({ x: 0, transition: { type: "spring", stiffness: 300, damping: 30 } });
+  };
+
+  const handleUpdateDetails = () => {
+    if (typeof updateItem === 'function') {
+      updateItem(item.id, { price: parseFloat(price) || 0, real_quantity: parseFloat(realQty) || 1 });
+    }
   };
 
   return (
@@ -66,49 +80,89 @@ const ItemCard = ({ item, toggleItem, setItemToDelete, setItemToEdit, isShopping
             setItemToEdit(item);
           }
         }}
-        className={`relative z-10 w-full border border-gray-100 rounded-xl p-4 shadow-sm flex items-center justify-between cursor-pointer active:scale-[0.99] transition-all duration-200 ${
-          item.completed ? 'bg-gray-50 opacity-60' : 'bg-white'
+        className={`relative z-10 w-full border border-gray-100 rounded-xl p-4 shadow-sm flex flex-col transition-all duration-200 ${
+          item.completed && isShoppingMode ? 'bg-blue-50/30 border-blue-100' : 'bg-white'
         }`}
       >
-        {/* Contenido Izquierdo */}
-        <div className="flex items-center gap-3 overflow-hidden">
-          <div className={`w-5 h-5 rounded-md flex items-center justify-center shrink-0 border ${
-            item.completed ? 'bg-[#0f62fe] border-[#0f62fe]' : 'border-gray-300'
-          }`}>
-            {item.completed && <Check size={14} className="text-white" />}
-          </div>
-          <div className="flex flex-col">
-            <span className={`font-medium ${item.completed ? 'line-through text-gray-500' : 'text-gray-800'}`}>
-              {item.name}
-            </span>
-            <div className="flex items-center gap-1.5">
-              {item.quantity && (
-                <span className={`text-xs ${item.completed ? 'line-through text-gray-400' : 'text-gray-500'}`}>
-                  {item.quantity}
-                </span>
-              )}
-              {item.price ? (
-                <span className={`text-xs font-semibold text-green-600 ${item.completed ? 'line-through opacity-70' : ''}`}>
-                  • {formatPrice(item.price * (item.real_quantity || 1))}
-                </span>
-              ) : null}
+        {/* Fila Principal (Nombre y Editar) */}
+        <div className="flex items-center justify-between w-full">
+          <div className="flex items-center gap-3">
+            {/* Checkbox (SOLO si isShoppingMode) */}
+            {isShoppingMode && (
+              <div className={`w-5 h-5 rounded-md flex items-center justify-center shrink-0 border ${
+                item.completed ? 'bg-[#0f62fe] border-[#0f62fe]' : 'border-gray-300'
+              }`}>
+                {item.completed && <Check size={14} className="text-white" />}
+              </div>
+            )}
+            
+            <div className="flex flex-col">
+              <span className={`font-medium ${item.completed && isShoppingMode ? 'line-through text-gray-500' : 'text-gray-800'}`}>
+                {item.name}
+              </span>
+              <div className="flex items-center gap-1.5">
+                {item.quantity && (
+                  <span className="text-xs text-gray-500">{item.quantity}</span>
+                )}
+                {item.price && (!item.completed || !isShoppingMode) ? (
+                  <span className="text-xs font-semibold text-green-600">
+                    • {formatPrice(item.price * (item.real_quantity || 1))}
+                  </span>
+                ) : null}
+              </div>
             </div>
           </div>
+
+          {/* Lápiz de edición normal */}
+          {!item.completed && (
+            <button 
+              onClick={(e) => { e.stopPropagation(); setItemToEdit(item); }} 
+              className="p-2 text-gray-400 hover:text-[#0f62fe] transition-colors"
+            >
+              <Edit2 size={16} />
+            </button>
+          )}
         </div>
 
-        {/* Botón de Editar (Solo si NO está completado) */}
-        {!item.completed && (
-          <button 
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation(); 
-              if (!isDragging.current) setItemToEdit(item); 
-            }}
-            className="p-2 text-gray-400 hover:text-[#0f62fe] transition-colors"
-          >
-            <Edit2 size={16} />
-          </button>
-        )}
+        {/* Fila Expandible (Precios) - Se muestra SOLO si está completado en modo compra */}
+        <AnimatePresence>
+          {isShoppingMode && item.completed && (
+            <motion.div 
+              initial={{ height: 0, opacity: 0, marginTop: 0 }} 
+              animate={{ height: 'auto', opacity: 1, marginTop: 12 }} 
+              exit={{ height: 0, opacity: 0, marginTop: 0 }}
+              className="flex items-center gap-2 overflow-hidden border-t border-blue-100 pt-3 w-full"
+            >
+              <div className="flex-1">
+                <label className="text-[10px] font-bold text-gray-400 uppercase">Precio Unit.</label>
+                <div className="relative">
+                  <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-500 text-sm">$</span>
+                  <input 
+                    type="number" 
+                    value={price} 
+                    onChange={(e) => setPrice(e.target.value)}
+                    onBlur={handleUpdateDetails}
+                    onClick={(e) => e.stopPropagation()} // Prevenir que se desmarque la tarjeta
+                    className="w-full bg-white border border-gray-200 rounded-lg py-1.5 pl-5 pr-2 text-sm focus:border-[#0f62fe] outline-none font-sans"
+                    placeholder="0"
+                  />
+                </div>
+              </div>
+              
+              <div className="w-20">
+                <label className="text-[10px] font-bold text-gray-400 uppercase">Llevas</label>
+                <input 
+                  type="number" 
+                  value={realQty} 
+                  onChange={(e) => setRealQty(e.target.value)}
+                  onBlur={handleUpdateDetails}
+                  onClick={(e) => e.stopPropagation()}
+                  className="w-full bg-white border border-gray-200 rounded-lg py-1.5 px-2 text-sm focus:border-[#0f62fe] outline-none font-sans"
+                />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </motion.div>
     </div>
   );
@@ -459,7 +513,7 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
             <button 
               onClick={() => setIsShoppingMode(!isShoppingMode)}
               className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                isShoppingMode ? 'bg-green-500' : 'bg-gray-300'
+                isShoppingMode ? 'bg-[#0f62fe]' : 'bg-gray-300'
               }`}
             >
               <motion.span 
@@ -469,7 +523,7 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
                 transition={{ type: "spring", stiffness: 500, damping: 30 }}
               />
             </button>
-            <span className={`text-sm font-semibold transition-colors ${isShoppingMode ? 'text-green-600' : 'text-gray-500'}`}>
+            <span className={`text-sm font-semibold transition-colors ${isShoppingMode ? 'text-[#0f62fe]' : 'text-gray-500'}`}>
               Modo Compra
             </span>
           </div>
@@ -539,6 +593,7 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
                         setItemToDelete={setItemToDelete} 
                         setItemToEdit={setItemToEdit} 
                         isShoppingMode={isShoppingMode}
+                        updateItem={updateItem}
                       />
                     ))}
                   </AnimatePresence>
@@ -894,7 +949,7 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
                 
                 <button 
                   onClick={() => { setModalType('manual'); setShowCompleteModal(true); }}
-                  className="flex-1 h-12 bg-green-500 hover:bg-green-600 active:bg-green-700 text-white font-bold text-sm rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-green-500/20 active:scale-[0.99] transition-all"
+                  className="flex-1 h-12 bg-[#0f62fe] hover:bg-[#0b51d4] active:bg-[#0943b1] text-white font-bold text-sm rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20 active:scale-[0.99] transition-all"
                 >
                   <CheckCircle2 size={18} /> Finalizar Compra
                 </button>
