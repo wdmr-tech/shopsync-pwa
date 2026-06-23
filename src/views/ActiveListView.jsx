@@ -41,11 +41,18 @@ const ItemCard = ({ item, toggleItem, setItemToDelete, setItemToEdit, isShopping
   
   const [realQty, setRealQty] = useState(defaultQty);
 
-  // Sincronizar el estado local si el ítem cambia en la base de datos
+  // Sincronizar el estado local si el ítem cambia en la base de datos (evitando pisar mientras se edita)
   useEffect(() => {
-    setPrice(item.price || '');
-    setRealQty(defaultQty);
-  }, [item.price, defaultQty]);
+    if (document.activeElement !== document.getElementById(`price-${item.id}`)) {
+      setPrice(item.price || '');
+    }
+  }, [item.price, item.id]);
+
+  useEffect(() => {
+    if (document.activeElement !== document.getElementById(`qty-${item.id}`)) {
+      setRealQty(defaultQty);
+    }
+  }, [defaultQty, item.id]);
 
   // FIX: Función de actualización para la BD que recalcula el total
   const handleUpdateDetails = () => {
@@ -95,7 +102,11 @@ const ItemCard = ({ item, toggleItem, setItemToDelete, setItemToEdit, isShopping
           }
         }}
         className={`relative z-10 w-full border border-gray-100 rounded-xl p-4 shadow-sm flex flex-col transition-colors duration-200 ${
-          item.completed && isShoppingMode ? 'bg-blue-50/40 border-blue-100' : 'bg-white'
+          item.completed 
+            ? isShoppingMode 
+              ? 'bg-blue-50/40 border-blue-100' 
+              : 'bg-gray-50 opacity-60'
+            : 'bg-white'
         }`}
       >
         <div className="flex items-center justify-between w-full">
@@ -109,11 +120,11 @@ const ItemCard = ({ item, toggleItem, setItemToDelete, setItemToEdit, isShopping
               </div>
             )}
             <div className="flex flex-col">
-              <span className={`font-medium ${item.completed && isShoppingMode ? 'line-through text-gray-500' : 'text-gray-800'}`}>
+              <span className={`font-medium ${item.completed ? 'line-through text-gray-500' : 'text-gray-800'}`}>
                 {item.name}
               </span>
               {item.quantity && (
-                <span className={`text-xs ${item.completed && isShoppingMode ? 'line-through text-gray-400' : 'text-gray-500'}`}>
+                <span className={`text-xs ${item.completed ? 'line-through text-gray-400' : 'text-gray-500'}`}>
                   {item.quantity}
                 </span>
               )}
@@ -146,6 +157,7 @@ const ItemCard = ({ item, toggleItem, setItemToDelete, setItemToEdit, isShopping
                 <div className="relative">
                   <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500 text-sm font-medium">$</span>
                   <input 
+                    id={`price-${item.id}`}
                     type="number" 
                     value={price} 
                     onChange={(e) => setPrice(e.target.value)}
@@ -159,6 +171,7 @@ const ItemCard = ({ item, toggleItem, setItemToDelete, setItemToEdit, isShopping
               <div className="w-20">
                 <label className="text-[10px] font-bold text-gray-400 uppercase">Llevas</label>
                 <input 
+                  id={`qty-${item.id}`}
                   type="number" 
                   value={realQty} 
                   onChange={(e) => setRealQty(e.target.value)}
@@ -208,7 +221,7 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
   }, [isShoppingMode, list?.id]);
 
   const calculateTotal = () => {
-    return items.reduce((total, item) => {
+    return allItems.reduce((total, item) => {
       if (!item.completed) return total;
       const price = item.price || 0;
       const qty = item.real_quantity || 1;
