@@ -18,7 +18,11 @@ import { motion, AnimatePresence, useAnimation } from 'framer-motion';
 import { getCategoryForProduct, formatListDate, getListStatus, formatQuantityText } from '../utils/productDictionary';
 import { CustomDatePickerModal } from '../components/CustomDatePickerModal';
 
-const ItemCard = ({ item, toggleItem, setItemToDelete, setItemToEdit }) => {
+const formatPrice = (amount) => {
+  return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(amount);
+};
+
+const ItemCard = ({ item, toggleItem, setItemToDelete, setItemToEdit, isShoppingMode }) => {
   const controls = useAnimation();
   const isDragging = useRef(false);
 
@@ -54,7 +58,13 @@ const ItemCard = ({ item, toggleItem, setItemToDelete, setItemToEdit }) => {
         style={{ touchAction: "pan-y" }}
         onClick={(e) => {
           if (isDragging.current) { e.preventDefault(); return; }
-          toggleItem(item.id, item.completed);
+          if (isShoppingMode) {
+            // SOLO permite tachar si estamos de compras
+            toggleItem(item.id, item.completed);
+          } else {
+            // Al tocar en modo planificación, abrimos el modal de edición
+            setItemToEdit(item);
+          }
         }}
         className={`relative z-10 w-full border border-gray-100 rounded-xl p-4 shadow-sm flex items-center justify-between cursor-pointer active:scale-[0.99] transition-all duration-200 ${
           item.completed ? 'bg-gray-50 opacity-60' : 'bg-white'
@@ -71,11 +81,18 @@ const ItemCard = ({ item, toggleItem, setItemToDelete, setItemToEdit }) => {
             <span className={`font-medium ${item.completed ? 'line-through text-gray-500' : 'text-gray-800'}`}>
               {item.name}
             </span>
-            {item.quantity && (
-              <span className={`text-xs ${item.completed ? 'line-through text-gray-400' : 'text-gray-500'}`}>
-                {item.quantity}
-              </span>
-            )}
+            <div className="flex items-center gap-1.5">
+              {item.quantity && (
+                <span className={`text-xs ${item.completed ? 'line-through text-gray-400' : 'text-gray-500'}`}>
+                  {item.quantity}
+                </span>
+              )}
+              {item.price ? (
+                <span className={`text-xs font-semibold text-green-600 ${item.completed ? 'line-through opacity-70' : ''}`}>
+                  • {formatPrice(item.price * (item.real_quantity || 1))}
+                </span>
+              ) : null}
+            </div>
           </div>
         </div>
 
@@ -112,6 +129,32 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
   } = itemsState;
 
   const [itemToDelete, setItemToDelete] = useState(null);
+
+  const [isShoppingMode, setIsShoppingMode] = useState(() => {
+    try {
+      const stored = localStorage.getItem(`shopping_mode_${list?.id}`);
+      return stored ? JSON.parse(stored) : false;
+    } catch {
+      return false;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(`shopping_mode_${list?.id}`, JSON.stringify(isShoppingMode));
+    } catch (e) {
+      console.error('Error al guardar shopping mode en localStorage:', e);
+    }
+  }, [isShoppingMode, list?.id]);
+
+  const calculateTotal = () => {
+    return items.reduce((total, item) => {
+      if (!item.completed) return total;
+      const price = item.price || 0;
+      const qty = item.real_quantity || 1;
+      return total + (price * qty);
+    }, 0);
+  };
 
   // Estados de finalización de lista
   const [isListCompleted, setIsListCompleted] = useState(() => {
@@ -411,17 +454,24 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
 
         {/* Debajo de la barra de progreso */}
         <div className="flex items-center justify-between mt-3">
-          {/* Izquierda: Botón Completar */}
-          <div className="flex items-center gap-4">
-            {!isListCompleted && (
-              <button 
-                onClick={() => { setModalType('manual'); setShowCompleteModal(true); }}
-                className="text-[#0f62fe] font-semibold text-sm tracking-wide active:opacity-70 flex items-center gap-1.5 py-1"
-              >
-                <CheckCircle2 size={16} />
-                Completar
-              </button>
-            )}
+          {/* Izquierda: Modo Compra Toggle */}
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={() => setIsShoppingMode(!isShoppingMode)}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                isShoppingMode ? 'bg-green-500' : 'bg-gray-300'
+              }`}
+            >
+              <motion.span 
+                layout
+                className="inline-block h-4 w-4 transform rounded-full bg-white shadow-sm"
+                animate={{ x: isShoppingMode ? 24 : 4 }}
+                transition={{ type: "spring", stiffness: 500, damping: 30 }}
+              />
+            </button>
+            <span className={`text-sm font-semibold transition-colors ${isShoppingMode ? 'text-green-600' : 'text-gray-500'}`}>
+              Modo Compra
+            </span>
           </div>
           
           {/* Derecha: Fecha de Compra */}
@@ -488,6 +538,7 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
                         toggleItem={toggleItem} 
                         setItemToDelete={setItemToDelete} 
                         setItemToEdit={setItemToEdit} 
+                        isShoppingMode={isShoppingMode}
                       />
                     ))}
                   </AnimatePresence>
@@ -801,14 +852,56 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
 
       {/* ── Dock Inferior ─────────────────────────────────────────────────────── */}
       <div className="absolute bottom-0 left-0 w-full p-5 bg-white border-t border-slate-100 z-10 pb-safe">
-        {/* Botón principal Agregar Producto (Único y de ancho completo) */}
-        <button
-          onClick={() => onAddProductClick(false)} // Abre el Bottom Sheet normal
-          className="w-full h-12 bg-[#0f62fe] hover:bg-[#0b51d4] active:bg-[#0943b1] text-white font-semibold text-sm rounded-2xl flex items-center justify-center space-x-2 shadow-lg shadow-blue-500/20 active:scale-[0.99] transition-all"
-        >
-          <Plus size={16} />
-          <span>Agregar Producto</span>
-        </button>
+        <AnimatePresence mode="popLayout">
+          {!isShoppingMode ? (
+            /* DOCK NORMAL (Planificación) */
+            <motion.div 
+              key="dock-normal"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 20 }}
+            >
+              <button 
+                onClick={() => onAddProductClick(false)} 
+                className="w-full h-12 bg-[#0f62fe] hover:bg-[#0b51d4] active:bg-[#0943b1] text-white font-semibold text-sm rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20 active:scale-[0.99] transition-all"
+              >
+                <Plus size={16} /> <span>Agregar Producto</span>
+              </button>
+            </motion.div>
+          ) : (
+            /* DOCK MODO COMPRA (Ejecución) */
+            <motion.div 
+              key="dock-shopping"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 20 }}
+              className="flex flex-col gap-3"
+            >
+              {/* Fila del Total */}
+              <div className="flex justify-between items-end px-2">
+                <span className="text-sm font-bold text-gray-500 uppercase tracking-wider">Total estimado</span>
+                <span className="text-2xl font-black text-gray-900">{formatPrice(calculateTotal())}</span>
+              </div>
+
+              {/* Fila de Botones (Agregar rápido y Finalizar) */}
+              <div className="flex gap-2 w-full">
+                <button 
+                  onClick={() => onAddProductClick(false)} 
+                  className="w-12 h-12 flex-shrink-0 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl flex items-center justify-center transition-colors"
+                >
+                  <Plus size={20} />
+                </button>
+                
+                <button 
+                  onClick={() => { setModalType('manual'); setShowCompleteModal(true); }}
+                  className="flex-1 h-12 bg-green-500 hover:bg-green-600 active:bg-green-700 text-white font-bold text-sm rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-green-500/20 active:scale-[0.99] transition-all"
+                >
+                  <CheckCircle2 size={18} /> Finalizar Compra
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* Selector de fecha custom */}
