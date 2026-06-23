@@ -204,8 +204,9 @@ const ItemCard = ({ item, toggleItem, setItemToDelete, setItemToEdit, isShopping
               onClick={(e) => e.stopPropagation()} // FIX: Evita que tocar el input desmarque la tarjeta
               onPointerDown={(e) => e.stopPropagation()} // FIX: Evita que Framer Motion capture el toque
             >
-              <div className="flex-1">
-                <label className="text-[10px] font-bold text-gray-400 uppercase">Precio Unitario</label>
+              {/* Precio Unitario (Acortado) */}
+              <div className="w-28 shrink-0">
+                <label className="text-[10px] font-bold text-gray-400 uppercase block mb-0.5">Precio Unitario</label>
                 <div className="relative">
                   <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500 text-sm font-medium">$</span>
                   <input 
@@ -220,16 +221,65 @@ const ItemCard = ({ item, toggleItem, setItemToDelete, setItemToEdit, isShopping
                 </div>
               </div>
               
-              <div className="w-20">
-                <label className="text-[10px] font-bold text-gray-400 uppercase">Llevas</label>
-                <input 
-                  id={`qty-${item.id}`}
-                  type="number" 
-                  value={realQty} 
-                  onChange={(e) => setRealQty(e.target.value)}
-                  onBlur={handleUpdateDetails}
-                  className="w-full bg-white border border-gray-200 rounded-lg py-1.5 px-3 text-sm text-center focus:border-[#0f62fe] outline-none shadow-sm"
-                />
+              {/* Cantidades / Unidades (Con botones +/-) */}
+              <div className="flex-1">
+                <label className="text-[10px] font-bold text-gray-400 uppercase block mb-0.5 text-center">Unidades</label>
+                <div className="flex items-center border border-gray-200 rounded-lg bg-slate-50/50 shadow-sm overflow-hidden h-[34px]">
+                  {/* Botón Decremento (-) */}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const currentVal = parseFloat(realQty) || 0;
+                      if (currentVal > 1) {
+                        const newVal = currentVal - 1;
+                        setRealQty(newVal);
+                        if (typeof updateItem === 'function') {
+                          updateItem(item.id, { price: parseFloat(price) || 0, real_quantity: newVal });
+                        }
+                      }
+                    }}
+                    className="w-8 h-full flex items-center justify-center text-gray-500 hover:bg-gray-100 active:bg-gray-200 border-r border-gray-200 font-bold text-base transition-colors shrink-0"
+                  >
+                    -
+                  </button>
+                  
+                  {/* Input de Cantidad */}
+                  <input 
+                    id={`qty-${item.id}`}
+                    type="number" 
+                    value={realQty} 
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setRealQty(val);
+                    }}
+                    onBlur={() => {
+                      const finalQty = parseFloat(realQty) || 1;
+                      setRealQty(finalQty);
+                      if (typeof updateItem === 'function') {
+                        updateItem(item.id, { price: parseFloat(price) || 0, real_quantity: finalQty });
+                      }
+                    }}
+                    className="w-full bg-transparent text-center text-sm font-semibold focus:outline-none focus:bg-white h-full px-1"
+                  />
+                  
+                  {/* Botón Incremento (+) */}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const currentVal = parseFloat(realQty) || 0;
+                      const newVal = currentVal + 1;
+                      setRealQty(newVal);
+                      if (typeof updateItem === 'function') {
+                        updateItem(item.id, { price: parseFloat(price) || 0, real_quantity: newVal });
+                      }
+                    }}
+                    className="w-8 h-full flex items-center justify-center text-gray-500 hover:bg-gray-100 active:bg-gray-200 border-l border-gray-200 font-bold text-base transition-colors shrink-0"
+                  >
+                    +
+                  </button>
+                </div>
               </div>
             </motion.div>
           )}
@@ -399,13 +449,7 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
     }
   }, [list]);
 
-  // Disparador automático al completar el 100% de la lista
-  useEffect(() => {
-    if (totalItems > 0 && completedItems === totalItems && !isListCompleted) {
-      setModalType('auto');
-      setShowCompleteModal(true);
-    }
-  }, [items, isListCompleted, totalItems, completedItems]);
+  // Disparador automático al completar el 100% de la lista removido según requerimiento de UX
 
   const handleManualCompleteClick = () => {
     if (totalItems === 0) return;
@@ -483,16 +527,16 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
       
       {/* Cabecera Móvil (Estática) */}
       <header className="px-5 py-4 border-b border-slate-100 bg-white flex items-center justify-between shrink-0 relative">
-        <div className="flex items-center justify-between w-full relative z-30">
+        <div className="flex-1 min-w-0 flex items-center justify-between w-full relative z-30">
           {/* Izquierda: Volver y Título */}
-          <div className="flex items-center gap-3 overflow-hidden">
+          <div className="flex-1 min-w-0 flex items-center gap-3 overflow-hidden mr-2">
             <button onClick={() => window.history.back()} className="p-2 -ml-2 text-gray-600 hover:bg-gray-100 rounded-full shrink-0">
               <ChevronLeft size={24} />
             </button>
-            <button onClick={() => onEditList && onEditList(list)} className="flex items-center gap-2 max-w-[200px] group text-left">
+            <button onClick={() => onEditList && onEditList(list)} className="flex-1 min-w-0 flex items-center gap-2 group text-left">
               <span className="text-2xl leading-none flex items-center shrink-0">{list?.emoji}</span>
-              <h2 className="text-xl font-bold text-gray-800 truncate leading-tight pb-1">{list?.name}</h2>
-              <Edit2 size={14} className="text-gray-400 group-hover:text-[#0f62fe] shrink-0" />
+              <h2 className="text-xl font-bold text-gray-800 truncate leading-tight pb-1 flex-1 min-w-0">{list?.name}</h2>
+              <Edit2 size={14} className="text-gray-400 group-hover:text-[#0f62fe] shrink-0 ml-1" />
             </button>
           </div>
 
@@ -512,6 +556,14 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
                   exit={{ opacity: 0, scale: 0.95, y: -10 }}
                   className="absolute right-0 top-full mt-1 w-44 bg-white border border-gray-100 rounded-xl shadow-lg py-1.5 z-50 flex flex-col"
                 >
+                  {!isListCompleted && (
+                    <button 
+                      onClick={() => { setShowMenu(false); setModalType('manual'); setShowCompleteModal(true); }}
+                      className="px-4 py-2.5 text-sm font-semibold text-green-600 hover:bg-green-50 flex items-center gap-2 text-left border-b border-gray-100"
+                    >
+                      <CheckCircle2 size={16} className="text-green-500" /> Finalizar Compra
+                    </button>
+                  )}
                   <button 
                     onClick={() => { setShowMenu(false); if(typeof onDuplicateList === 'function') onDuplicateList({ ...listRef.current, items: itemsRef.current }); }}
                     className="px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-2 text-left"
@@ -1062,13 +1114,23 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
                 <button 
                   onClick={() => onAddProductClick(false)} 
                   className="w-12 h-12 flex-shrink-0 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl flex items-center justify-center transition-colors"
+                  aria-label="Agregar producto"
                 >
-                  <Plus size={20} />
+                  <div className="relative flex items-center justify-center">
+                    <ShoppingBag size={20} />
+                    <span className="absolute -top-1.5 -right-1.5 w-4.5 h-4.5 bg-[#0f62fe] text-white text-[10px] font-black rounded-full flex items-center justify-center border border-white">
+                      +
+                    </span>
+                  </div>
                 </button>
                 
                 <button 
                   onClick={() => { setModalType('manual'); setShowCompleteModal(true); }}
-                  className="flex-1 h-12 bg-[#0f62fe] hover:bg-[#0b51d4] active:bg-[#0943b1] text-white font-bold text-sm rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20 active:scale-[0.99] transition-all"
+                  className={`flex-1 h-12 font-bold text-sm rounded-xl flex items-center justify-center gap-2 shadow-lg active:scale-[0.99] transition-all ${
+                    progressPercentage === 100 && totalItems > 0
+                      ? 'bg-[#24a148] hover:bg-[#1f8b3d] active:bg-[#1b7534] text-white shadow-green-500/20'
+                      : 'bg-[#0f62fe] hover:bg-[#0b51d4] active:bg-[#0943b1] text-white shadow-blue-500/20'
+                  }`}
                 >
                   <CheckCircle2 size={18} /> Finalizar Compra
                 </button>
