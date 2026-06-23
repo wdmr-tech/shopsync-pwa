@@ -84,6 +84,7 @@ const AISLE_STYLES = {
 const ItemCard = ({ item, toggleItem, setItemToDelete, setItemToEdit, isShoppingMode, updateItem }) => {
   const controls = useAnimation();
   const isDragging = useRef(false);
+  const [isDraggingActive, setIsDraggingActive] = useState(false);
 
   // Estados locales para los inputs
   const [price, setPrice] = useState(item.price || '');
@@ -120,7 +121,9 @@ const ItemCard = ({ item, toggleItem, setItemToDelete, setItemToEdit, isShopping
     if (!item.completed && info.offset.x < -60) {
       setItemToDelete(item.id);
     }
-    controls.start({ x: 0, transition: { type: "spring", stiffness: 300, damping: 30 } });
+    controls.start({ x: 0, transition: { type: "spring", stiffness: 300, damping: 30 } }).then(() => {
+      setIsDraggingActive(false);
+    });
   };
 
   // FIX: Bloquear drag si estamos editando precios (completado en modo compra)
@@ -128,8 +131,8 @@ const ItemCard = ({ item, toggleItem, setItemToDelete, setItemToEdit, isShopping
 
   return (
     <div className="relative mb-2">
-      {/* Fondo Rojo (Solo visible si el drag está permitido) */}
-      {isDragEnabled && (
+      {/* Fondo Rojo (Solo visible si el drag está permitido y se está arrastrando) */}
+      {isDragEnabled && isDraggingActive && (
         <div className="absolute top-[1px] bottom-[1px] right-[1px] w-[80%] bg-red-500 rounded-xl flex items-center justify-end pr-4 text-white -z-0">
           <Trash2 size={20} />
         </div>
@@ -139,7 +142,7 @@ const ItemCard = ({ item, toggleItem, setItemToDelete, setItemToEdit, isShopping
         drag={isDragEnabled ? "x" : false}
         dragConstraints={{ left: -80, right: 0 }}
         dragElastic={0.1}
-        onDragStart={() => { isDragging.current = true; }}
+        onDragStart={() => { isDragging.current = true; setIsDraggingActive(true); }}
         onDragEnd={handleDragEnd}
         animate={controls}
         initial={{ x: 0 }}
@@ -222,9 +225,9 @@ const ItemCard = ({ item, toggleItem, setItemToDelete, setItemToEdit, isShopping
               </div>
               
               {/* Cantidades / Unidades (Con botones +/-) */}
-              <div className="flex-1">
-                <label className="text-[10px] font-bold text-gray-400 uppercase block mb-0.5 text-center">Unidades</label>
-                <div className="flex items-center border border-gray-200 rounded-lg bg-slate-50/50 shadow-sm overflow-hidden h-[34px]">
+              <div className="flex-1 flex flex-col items-center">
+                <label className="text-[10px] font-bold text-gray-400 uppercase block mb-0.5">Cantidad</label>
+                <div className="flex items-center h-[34px]">
                   {/* Botón Decremento (-) */}
                   <button
                     type="button"
@@ -239,7 +242,7 @@ const ItemCard = ({ item, toggleItem, setItemToDelete, setItemToEdit, isShopping
                         }
                       }
                     }}
-                    className="w-8 h-full flex items-center justify-center text-gray-500 hover:bg-gray-100 active:bg-gray-200 border-r border-gray-200 font-bold text-base transition-colors shrink-0"
+                    className="w-8 h-full rounded-l-lg bg-[#1E1E1E] text-white flex items-center justify-center font-bold text-lg hover:bg-black active:scale-95 transition-all shrink-0"
                   >
                     -
                   </button>
@@ -260,7 +263,7 @@ const ItemCard = ({ item, toggleItem, setItemToDelete, setItemToEdit, isShopping
                         updateItem(item.id, { price: parseFloat(price) || 0, real_quantity: finalQty });
                       }
                     }}
-                    className="w-full bg-transparent text-center text-sm font-semibold focus:outline-none focus:bg-white h-full px-1"
+                    className="w-12 h-full border-y border-gray-200 bg-white text-center text-sm font-semibold focus:outline-none focus:border-y-[#0f62fe] outline-none"
                   />
                   
                   {/* Botón Incremento (+) */}
@@ -275,7 +278,7 @@ const ItemCard = ({ item, toggleItem, setItemToDelete, setItemToEdit, isShopping
                         updateItem(item.id, { price: parseFloat(price) || 0, real_quantity: newVal });
                       }
                     }}
-                    className="w-8 h-full flex items-center justify-center text-gray-500 hover:bg-gray-100 active:bg-gray-200 border-l border-gray-200 font-bold text-base transition-colors shrink-0"
+                    className="w-8 h-full rounded-r-lg bg-[#1E1E1E] text-white flex items-center justify-center font-bold text-lg hover:bg-black active:scale-95 transition-all shrink-0"
                   >
                     +
                   </button>
@@ -554,29 +557,31 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
                   initial={{ opacity: 0, scale: 0.95, y: -10 }} 
                   animate={{ opacity: 1, scale: 1, y: 0 }} 
                   exit={{ opacity: 0, scale: 0.95, y: -10 }}
-                  className="absolute right-0 top-full mt-1 w-44 bg-white border border-gray-100 rounded-xl shadow-lg py-1.5 z-50 flex flex-col"
+                  className="absolute right-0 top-full mt-1 w-48 bg-white border border-gray-100 rounded-xl shadow-lg py-1.5 z-50 flex flex-col"
                 >
-                  {!isListCompleted && (
-                    <button 
-                      onClick={() => { setShowMenu(false); setModalType('manual'); setShowCompleteModal(true); }}
-                      className="px-4 py-2.5 text-sm font-semibold text-green-600 hover:bg-green-50 flex items-center gap-2 text-left border-b border-gray-100"
-                    >
-                      <CheckCircle2 size={16} className="text-green-500" /> Finalizar Compra
-                    </button>
-                  )}
+                  {/* 1. Editar Lista */}
                   <button 
-                    onClick={() => { setShowMenu(false); if(typeof onDuplicateList === 'function') onDuplicateList({ ...listRef.current, items: itemsRef.current }); }}
-                    className="px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-2 text-left"
+                    onClick={() => { setShowMenu(false); if(typeof onEditList === 'function') onEditList(list); }}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-2 text-left whitespace-nowrap"
                   >
-                    <Copy size={16} className="text-gray-400" /> Duplicar Lista
+                    <Edit2 size={16} className="text-[#0f62fe]" /> Editar lista
                   </button>
 
+                  {/* 2. Duplicar Lista */}
+                  <button 
+                    onClick={() => { setShowMenu(false); if(typeof onDuplicateList === 'function') onDuplicateList({ ...listRef.current, items: itemsRef.current }); }}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-2 text-left whitespace-nowrap"
+                  >
+                    <Copy size={16} className="text-[#0f62fe]" /> Duplicar lista
+                  </button>
+
+                  {/* 3. Publicar Lista */}
                   {!isPublished ? (
                     <button 
                       onClick={() => { setShowMenu(false); setShowShareModal(true); }}
-                      className="px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-2 text-left"
+                      className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-2 text-left whitespace-nowrap"
                     >
-                      <Globe size={16} className="text-[#0f62fe]" /> Publicar
+                      <Globe size={16} className="text-[#0f62fe]" /> Publicar lista
                     </button>
                   ) : (
                     <button 
@@ -584,9 +589,19 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
                         setShowMenu(false); 
                         if (typeof onUnpublishList === 'function') onUnpublishList(list.id); 
                       }}
-                      className="px-4 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 flex items-center gap-2 text-left"
+                      className="px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 flex items-center gap-2 text-left whitespace-nowrap"
                     >
-                      <Trash2 size={16} className="text-red-500" /> Despublicar
+                      <Globe size={16} className="text-red-500" /> Despublicar lista
+                    </button>
+                  )}
+
+                  {/* 4. Completar ahora (solo si no está completada) */}
+                  {!isListCompleted && (
+                    <button 
+                      onClick={() => { setShowMenu(false); setModalType('manual'); setShowCompleteModal(true); }}
+                      className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-2 text-left whitespace-nowrap"
+                    >
+                      <CheckCircle2 size={16} className="text-[#0f62fe]" /> Completar ahora
                     </button>
                   )}
                 </motion.div>
@@ -1113,12 +1128,12 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
               <div className="flex gap-2 w-full">
                 <button 
                   onClick={() => onAddProductClick(false)} 
-                  className="w-12 h-12 flex-shrink-0 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl flex items-center justify-center transition-colors"
+                  className="w-12 h-12 flex-shrink-0 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl flex items-center justify-center transition-colors animate-none"
                   aria-label="Agregar producto"
                 >
                   <div className="relative flex items-center justify-center">
                     <ShoppingBag size={20} />
-                    <span className="absolute -top-1.5 -right-1.5 w-4.5 h-4.5 bg-[#0f62fe] text-white text-[10px] font-black rounded-full flex items-center justify-center border border-white">
+                    <span className="absolute -top-2.5 -right-1 text-[#0f62fe] text-sm font-extrabold select-none">
                       +
                     </span>
                   </div>
