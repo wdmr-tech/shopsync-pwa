@@ -1,9 +1,22 @@
 import React, { useState } from 'react';
-import { LogOut, X, ShoppingCart, ChevronRight } from 'lucide-react';
+import { LogOut, X, ShoppingCart, ChevronRight, Key, Eye, EyeOff } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export function SettingsView({ onLogout, currentUser }) {
   const [showAbout, setShowAbout] = useState(false);
+  const [geminiApiKey, setGeminiApiKey] = useState(() => {
+    return localStorage.getItem('VITE_GEMINI_API_KEY') || '';
+  });
+  const [showApiKey, setShowApiKey] = useState(false);
+
+  const handleSaveApiKey = (val) => {
+    setGeminiApiKey(val);
+    if (val.trim() === '') {
+      localStorage.removeItem('VITE_GEMINI_API_KEY');
+    } else {
+      localStorage.setItem('VITE_GEMINI_API_KEY', val.trim());
+    }
+  };
 
   return (
     <div className="flex-1 bg-slate-50 flex flex-col h-full overflow-hidden select-none">
@@ -23,6 +36,45 @@ export function SettingsView({ onLogout, currentUser }) {
             <p className="text-sm text-gray-500 font-medium">Sesión iniciada como</p>
             <p className="text-lg font-bold text-gray-900">{currentUser?.name || 'Invitado'}</p>
           </div>
+        </div>
+
+        {/* Configuración de IA (Gemini) */}
+        <div className="bg-white rounded-2xl p-5 mb-6 border border-gray-100 shadow-sm">
+          <h3 className="text-sm font-bold text-slate-800 mb-2 flex items-center gap-2">
+            <Key size={16} className="text-purple-500" />
+            Clave API de Gemini
+          </h3>
+          <p className="text-xs text-gray-500 mb-4 leading-relaxed">
+            Se requiere una clave API para el Generador Inteligente. Puedes crear una gratis en <a href="https://aistudio.google.com/" target="_blank" rel="noopener noreferrer" className="text-purple-600 underline font-semibold hover:text-purple-700">Google AI Studio</a>.
+          </p>
+          <div className="relative flex items-center">
+            <input
+              type={showApiKey ? "text" : "password"}
+              placeholder="Ingresa tu clave de Gemini..."
+              value={geminiApiKey}
+              onChange={(e) => handleSaveApiKey(e.target.value)}
+              className="w-full text-sm bg-slate-50 border border-gray-200 rounded-xl pl-4 pr-11 py-2.5 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 font-mono transition-all text-slate-800"
+            />
+            <button
+              type="button"
+              onClick={() => setShowApiKey(!showApiKey)}
+              className="absolute right-3 text-gray-400 hover:text-gray-600 focus:outline-none transition-colors"
+              title={showApiKey ? "Ocultar clave" : "Mostrar clave"}
+            >
+              {showApiKey ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+          </div>
+          {geminiApiKey ? (
+            <p className="text-[11px] text-green-600 font-semibold mt-2.5 flex items-center gap-1">
+              <span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
+              Clave guardada y activa localmente
+            </p>
+          ) : (
+            <p className="text-[11px] text-amber-600 font-semibold mt-2.5 flex items-center gap-1">
+              <span className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-ping"></span>
+              Sin configurar (usa el fallback del archivo .env)
+            </p>
+          )}
         </div>
 
         {/* Opciones de Ajustes */}

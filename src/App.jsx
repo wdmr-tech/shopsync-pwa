@@ -8,13 +8,14 @@ import { ExploreDetailView } from './views/ExploreDetailView';
 import { BottomSheet } from './components/BottomSheet';
 import { BottomNavBar } from './components/BottomNavBar';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Plus, Smile, Mic, CheckCircle2, Bell } from 'lucide-react';
+import { Plus, Smile, Mic, CheckCircle2, Bell, Sparkles, ArrowRight, X, Wand2, Loader2 } from 'lucide-react';
 import { COMMON_PRODUCTS, formatQuantityText, formatListDate } from './utils/productDictionary';
 import EmojiPicker from 'emoji-picker-react';
 import { CustomDatePickerModal } from './components/CustomDatePickerModal';
 import { SettingsView } from './views/SettingsView';
 import { LoginView } from './views/LoginView';
 import { COMMUNITY_LISTS } from './utils/communityLists';
+import { generateListWithGemini } from './services/ai';
 
 const parseQuantityString = (qtyStr) => {
   if (!qtyStr) return { quantity: '', unit: '', customUnit: '' };
@@ -103,6 +104,14 @@ function App() {
   // Estado del Splash Screen
   const [showSplash, setShowSplash] = useState(true);
 
+  // Estados para Generador de IA
+  const [showAIGenerator, setShowAIGenerator] = useState(false);
+  const [aiPrompt, setAiPrompt] = useState('');
+  const [aiDate, setAiDate] = useState('');
+  const [aiReminder, setAiReminder] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [showAICustomDatePicker, setShowAICustomDatePicker] = useState(false);
+
   // Estado para Toasts / Snackbars
   const [toastMessage, setToastMessage] = useState('');
   const toastTimeoutRef = useRef(null);
@@ -163,6 +172,52 @@ function App() {
       return updated;
     });
     showToast('Lista despublicada');
+  };
+
+  const handleGenerateAIList = async (prompt, date = '', reminder = false) => {
+    setIsGenerating(true);
+    try {
+      // Llamamos a Gemini API con el prompt del usuario
+      const aiResponse = await generateListWithGemini(prompt);
+
+      // Validación básica del formato
+      if (!aiResponse || !aiResponse.items || !Array.isArray(aiResponse.items)) {
+        throw new Error("La respuesta de la IA no contiene elementos válidos.");
+      }
+
+      const templateItems = aiResponse.items.map(item => ({
+        name: item.name,
+        quantity: formatQuantityText(item.quantity, item.unit)
+      }));
+
+      const newList = await addList(
+        aiResponse.name || "Lista Inteligente",
+        aiResponse.emoji || "✨",
+        date, // plannedDate
+        templateItems,
+        currentUser?.id || 'guest',
+        reminder // reminder
+      );
+
+      showToast("¡Lista creada con éxito!");
+      
+      // Excelente UX: Navega directamente a la lista recién creada
+      setSelectedListId(newList.id);
+      setCurrentView('activeList');
+      setCurrentTab('lists');
+
+      // Limpiar estados
+      setShowAIGenerator(false);
+      setAiPrompt('');
+      setAiDate('');
+      setAiReminder(false);
+    } catch (error) {
+      console.error(error);
+      alert("Hubo un error al generar la lista con IA: " + error.message);
+      throw error;
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   // Filtro de listas para HomeView
@@ -426,6 +481,7 @@ function App() {
                 setActiveFilter={setActiveFilter}
                 showToast={showToast}
                 updateList={updateList}
+                onGenerateAIList={handleGenerateAIList}
               />
             ) : (
               <ActiveListView
@@ -507,6 +563,31 @@ function App() {
               title={listToClone ? (listToClone.author ? 'COPIAR LISTA' : 'DUPLICAR LISTA') : listToEdit?.id ? 'EDITAR LISTA' : 'CREAR NUEVA LISTA'}
             >
               <form onSubmit={handleSaveList} className="space-y-4 px-1 pt-1 pb-4">
+                {/* Dentro de CreateListSheet, arriba del input de nombre */}
+                {!listToEdit?.id && !listToClone && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      // Cierra este sheet y abre el de IA
+                      setListToEdit(null);
+                      setListToClone(null);
+                      setShowAIGenerator(true);
+                    }}
+                    className="w-full mb-6 bg-gradient-to-r from-indigo-50 to-purple-50 hover:from-indigo-100 hover:to-purple-100 border border-purple-100 rounded-2xl p-4 flex items-center justify-between transition-colors text-left"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="bg-gradient-to-br from-indigo-500 to-purple-500 p-2 rounded-xl text-white shadow-sm">
+                        <Sparkles size={18} />
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-sm text-purple-900">Crear con Inteligencia Artificial</h3>
+                        <p className="text-xs text-purple-700/70">Describe lo que necesitas y la armamos.</p>
+                      </div>
+                    </div>
+                    <ArrowRight size={16} className="text-purple-400" />
+                  </button>
+                )}
+
                 {/* 1. Nombre de la lista */}
                 <div className="space-y-1.5 mb-5">
                   <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block">
@@ -832,6 +913,121 @@ function App() {
           </>
         )}
 
+        {/* ── MODAL GENERADOR MÁGICO IA ── */}
+        <AnimatePresence>
+          {showAIGenerator && (
+            <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex flex-col justify-end">
+              {/* Backdrop click to close */}
+              <div 
+                onClick={() => !isGenerating && setShowAIGenerator(false)} 
+                className="absolute inset-0 z-0 cursor-pointer"
+              />
+              <motion.div
+                initial={{ y: '100%' }} 
+                animate={{ y: 0 }} 
+                exit={{ y: '100%' }}
+                transition={{ type: 'spring', damping: 25, stiffness: 220 }}
+                className="bg-white rounded-t-3xl p-6 pb-8 z-10 flex flex-col h-[85dvh] max-w-md mx-auto w-full shadow-2xl relative"
+              >
+                {/* Modal Drag Handle */}
+                <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto mb-4 shrink-0" />
+
+                <div className="flex justify-between items-center mb-6 shrink-0">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="text-purple-500" size={24} />
+                    <h2 className="text-xl font-bold text-gray-900">Crea tu lista más rápido con IA</h2>
+                  </div>
+                  <button 
+                    type="button"
+                    onClick={() => !isGenerating && setShowAIGenerator(false)} 
+                    disabled={isGenerating}
+                    className="p-2 bg-gray-100 hover:bg-gray-200 rounded-full text-gray-500 transition-colors disabled:opacity-50"
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
+
+                <div className="flex-1 overflow-y-auto flex flex-col space-y-4 px-1 py-1">
+                  <div>
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider pl-1 block mb-2 shrink-0">
+                      ¿Qué tienes en mente?
+                    </label>
+                    <textarea
+                      value={aiPrompt}
+                      onChange={(e) => setAiPrompt(e.target.value)}
+                      placeholder="Ej: Ingredientes para hacer lasaña para 4 personas, todo lo necesario para un viaje a la playa, compras del mes de limpieza..."
+                      className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3.5 min-h-[120px] resize-none focus:outline-none focus:border-purple-500 focus:bg-white focus:ring-1 focus:ring-purple-500 text-gray-800 text-sm font-semibold transition-all placeholder-slate-400"
+                      disabled={isGenerating}
+                    />
+                  </div>
+
+                  {/* Selector de fecha y recordatorio */}
+                  <div>
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider pl-1 block mb-2">
+                      Fecha de compra (Opcional)
+                    </label>
+                    <button 
+                      type="button"
+                      onClick={() => setShowAICustomDatePicker(true)}
+                      className="w-full text-left bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-purple-500 placeholder-slate-400 transition-all font-semibold text-slate-800 cursor-pointer hover:bg-slate-100/60"
+                      disabled={isGenerating}
+                    >
+                      {aiDate ? formatListDate(aiDate) : "Selecciona una fecha"}
+                    </button>
+                    {aiDate && (
+                      <div className="mt-4 mb-2 flex items-center justify-between bg-purple-50/50 p-4 rounded-xl border border-purple-100">
+                        <div className="flex items-center gap-3">
+                          <Bell size={18} className={aiReminder ? "text-purple-600" : "text-gray-400"} />
+                          <div>
+                            <p className="text-sm font-semibold text-gray-800">Recordatorio</p>
+                            <p className="text-[11px] text-gray-500">Notificar el día de la compra</p>
+                          </div>
+                        </div>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                          <input type="checkbox" className="sr-only peer" checked={aiReminder} onChange={(e) => setAiReminder(e.target.checked)} disabled={isGenerating} />
+                          <div className="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                        </label>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Botón Generar */}
+                <button
+                  type="button"
+                  disabled={!aiPrompt.trim() || isGenerating}
+                  onClick={async () => {
+                    if (typeof handleGenerateAIList === 'function') {
+                      try {
+                        await handleGenerateAIList(aiPrompt, aiDate, aiReminder);
+                      } catch (error) {
+                        console.error(error);
+                      }
+                    }
+                  }}
+                  className={`w-full mt-4 text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-2 transition-all shrink-0 shadow-lg ${
+                    !aiPrompt.trim() && !isGenerating
+                      ? 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none'
+                      : 'bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 shadow-purple-500/15 active:scale-[0.99] hover:opacity-95'
+                  }`}
+                >
+                  {isGenerating ? (
+                    <>
+                      <Loader2 className="animate-spin" size={18} />
+                      Generando tu lista...
+                    </>
+                  ) : (
+                    <>
+                      <Wand2 size={18} />
+                      Crear lista automática
+                    </>
+                  )}
+                </button>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+
       </div>
 
       {/* Selector de Fecha Custom */}
@@ -840,6 +1036,14 @@ function App() {
         onClose={() => setShowCustomDatePicker(false)}
         onSelectDate={(date) => setListDate(date)}
         currentDate={listDate}
+      />
+
+      {/* Selector de Fecha Custom para IA */}
+      <CustomDatePickerModal
+        isOpen={showAICustomDatePicker}
+        onClose={() => setShowAICustomDatePicker(false)}
+        onSelectDate={(date) => setAiDate(date)}
+        currentDate={aiDate}
       />
     </div>
   );

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Plus, GripVertical, Trash2, AlertTriangle, Calendar, Bell, X } from 'lucide-react';
+import { Plus, GripVertical, Trash2, AlertTriangle, Calendar, Bell, X, Sparkles, Wand2, Loader2, ArrowRight } from 'lucide-react';
 import { motion, AnimatePresence, useAnimation, Reorder, useDragControls } from 'framer-motion';
 import { getListStatus } from '../utils/productDictionary';
 import { checkReminders } from '../utils/reminders';
@@ -638,6 +638,8 @@ export function HomeView({ lists, loading, removeList, onSelectList, onCreateLis
           />
         )}
       </AnimatePresence>
+
+
 
     </div>
   );
