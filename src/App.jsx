@@ -735,7 +735,40 @@ function App() {
                 setSuggestions([]);
                 setEditingItem(null);
               }}
-              title={editingItem ? "Editar Producto" : `Agregar a ${activeList?.name}`}
+              title={
+                editingItem ? (
+                  <div className="flex justify-between items-center w-full pr-4">
+                    <span>Editar Producto</span>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        if (window.confirm('¿Seguro que quieres eliminar este producto?')) {
+                          try {
+                            await activeListItemsState.removeItem(editingItem.id);
+                            showToast('Producto eliminado');
+                            setBottomSheet(null);
+                            setProductName('');
+                            setProductQuantity('');
+                            setProductUnit('');
+                            setCustomUnit('');
+                            setShowDetails(false);
+                            setShowSuggestions(false);
+                            setSuggestions([]);
+                            setEditingItem(null);
+                          } catch (err) {
+                            alert('No se pudo eliminar el producto.');
+                          }
+                        }
+                      }}
+                      className="text-xs font-bold text-red-500 hover:text-red-700 active:scale-95 transition-all normal-case cursor-pointer"
+                    >
+                      Eliminar producto
+                    </button>
+                  </div>
+                ) : (
+                  `Agregar a ${activeList?.name}`
+                )
+              }
             >
               <form onSubmit={addItemToList} className="space-y-4 px-1 pt-1 pb-4">
                 {/* A. Campo: Nombre del Producto (Obligatorio) */}

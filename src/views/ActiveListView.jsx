@@ -180,9 +180,9 @@ const ItemCard = ({
           {!item.completed && !isShoppingMode && (
             <button 
               onClick={(e) => { e.stopPropagation(); setItemToEdit(item); }}
-              className="p-2 text-gray-400 hover:text-[#0f62fe]"
+              className="w-20 h-[34px] bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold flex items-center justify-center transition-all active:scale-95 border border-slate-200 shrink-0"
             >
-              <Edit2 size={16} />
+              Editar
             </button>
           )}
         </div>

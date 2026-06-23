@@ -33,9 +33,9 @@ export function BottomSheet({ isOpen, onClose, title, children }) {
         <div className="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mb-6 shrink-0" />
 
         {title && (
-          <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-4 shrink-0">
+          <div className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-4 shrink-0 flex items-center justify-between w-full">
             {title}
-          </h3>
+          </div>
         )}
 
         {children}

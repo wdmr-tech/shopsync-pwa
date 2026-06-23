@@ -80,6 +80,9 @@ function ListCard({ list, onListClick, onSwipeDelete, onDragHandleDown }) {
         animate={controls}
         initial={{ x: 0 }}
         style={{ touchAction: "pan-y" }}
+        onTouchStart={(e) => e.stopPropagation()}
+        onTouchMove={(e) => e.stopPropagation()}
+        onTouchEnd={(e) => e.stopPropagation()}
         onClick={(e) => {
           if (isDragging.current) {
             e.preventDefault();
@@ -96,17 +99,10 @@ function ListCard({ list, onListClick, onSwipeDelete, onDragHandleDown }) {
 
         {/* Detalles */}
         <div className="flex-1 min-w-0 space-y-1.5">
-          {/* Título + badge */}
-          <div className="flex justify-between items-center w-full mb-1">
-            <h3 className="font-semibold text-slate-800 text-sm truncate leading-tight pb-1 pr-2">
-              {list.name}
-            </h3>
-            <span
-              className={`shrink-0 text-[10px] px-2 py-0.5 rounded-full font-medium uppercase tracking-wider ${badgeStyles}`}
-            >
-              {status === 'en progreso' ? 'En progreso' : status === 'completada' ? 'Completada' : 'Pendiente'}
-            </span>
-          </div>
+          {/* Título */}
+          <h3 className="font-semibold text-slate-800 text-sm truncate leading-tight pb-1 pr-2 mb-1">
+            {list.name}
+          </h3>
 
           <div className="space-y-2 mt-3">
             {/* Barra de Progreso Dinámica */}
@@ -508,6 +504,28 @@ export function HomeView({ lists, loading, removeList, onSelectList, onCreateLis
             }).length;
           };
 
+          let chipClass = '';
+          let countBadgeClass = '';
+          
+          if (activeFilter === filter) {
+            if (filter === 'Pendientes') {
+              chipClass = 'bg-slate-200 text-slate-700';
+              countBadgeClass = 'bg-slate-300 text-slate-700';
+            } else if (filter === 'En progreso') {
+              chipClass = 'bg-yellow-100 text-yellow-800';
+              countBadgeClass = 'bg-yellow-200 text-yellow-800';
+            } else if (filter === 'Completadas') {
+              chipClass = 'bg-green-100 text-green-800';
+              countBadgeClass = 'bg-green-200 text-green-800';
+            } else { // 'Todas'
+              chipClass = 'bg-blue-100 text-[#0f62fe]';
+              countBadgeClass = 'bg-[#0f62fe]/10 text-[#0f62fe]';
+            }
+          } else {
+            chipClass = 'bg-gray-100 text-gray-600';
+            countBadgeClass = 'bg-gray-200 text-gray-500';
+          }
+
           return (
             <button
               ref={(el) => { filterRefs.current[filter] = el; }}
@@ -515,18 +533,10 @@ export function HomeView({ lists, loading, removeList, onSelectList, onCreateLis
               onClick={() => {
                 setActiveFilter(filter);
               }}
-              className={`shrink-0 px-4 py-2 rounded-full text-xs font-medium whitespace-nowrap transition-colors flex items-center justify-center ${
-                activeFilter === filter
-                  ? 'bg-blue-100 text-[#0f62fe]'
-                  : 'bg-gray-100 text-gray-600'
-              }`}
+              className={`shrink-0 px-4 py-2 rounded-full text-xs font-medium whitespace-nowrap transition-colors flex items-center justify-center ${chipClass}`}
             >
               <span>{filter}</span>
-              <span className={`ml-2 w-5 h-5 flex items-center justify-center rounded-full text-[10px] font-bold transition-colors ${
-                activeFilter === filter
-                  ? 'bg-[#0f62fe]/10 text-[#0f62fe]'
-                  : 'bg-gray-200 text-gray-500'
-              }`}>
+              <span className={`ml-2 w-5 h-5 flex items-center justify-center rounded-full text-[10px] font-bold transition-colors ${countBadgeClass}`}>
                 {getCountForTab(filter)}
               </span>
             </button>
