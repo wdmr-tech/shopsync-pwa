@@ -183,10 +183,28 @@ export const db = {
     if (error) throw error;
 
     // Mapear list_id → listId para compatibilidad con el frontend
-    return (data || []).map((item) => ({
-      ...item,
-      listId: item.list_id,
-    }));
+    return (data || []).map((item) => {
+      // ENRIQUECER CON PRECIO Y CANTIDAD REAL DESDE LOCALSTORAGE (Evita errores de esquema en DB)
+      let localPrice = 0;
+      let localRealQty = 1;
+      try {
+        const stored = localStorage.getItem(`shopsync_item_details_${item.id}`);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          localPrice = parsed.price || 0;
+          localRealQty = parsed.real_quantity || 1;
+        }
+      } catch (e) {
+        console.error("Error al cargar detalles de localStorage:", e);
+      }
+
+      return {
+        ...item,
+        listId: item.list_id,
+        price: localPrice,
+        real_quantity: localRealQty
+      };
+    });
   },
 
   // Agrega un ítem a una lista
@@ -255,6 +273,40 @@ export const db = {
     if ('listId' in dbUpdates) {
       dbUpdates.list_id = dbUpdates.listId;
       delete dbUpdates.listId;
+    }
+
+    // EXTRAER PRECIO Y REAL_QUANTITY PARA GUARDAR EN LOCALSTORAGE (Evita error PGRST204 de columna inexistente)
+    let hasLocalDetails = false;
+    let localDetails = {};
+    
+    if ('price' in dbUpdates) {
+      localDetails.price = dbUpdates.price;
+      delete dbUpdates.price;
+      hasLocalDetails = true;
+    }
+    if ('real_quantity' in dbUpdates) {
+      localDetails.real_quantity = dbUpdates.real_quantity;
+      delete dbUpdates.real_quantity;
+      hasLocalDetails = true;
+    }
+
+    if (hasLocalDetails) {
+      try {
+        const currentStored = localStorage.getItem(`shopsync_item_details_${itemId}`);
+        const current = currentStored ? JSON.parse(currentStored) : {};
+        localStorage.setItem(
+          `shopsync_item_details_${itemId}`, 
+          JSON.stringify({ ...current, ...localDetails })
+        );
+      } catch (e) {
+        console.error("Error al guardar detalles locales:", e);
+      }
+    }
+
+    // Si no quedan columnas para actualizar en Supabase después de extraer precio/cantidad,
+    // simplemente retornamos éxito simulado para evitar peticiones vacías a Supabase
+    if (Object.keys(dbUpdates).length === 0) {
+      return { id: itemId };
     }
 
     const { data, error } = await supabase
