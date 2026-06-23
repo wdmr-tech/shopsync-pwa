@@ -81,40 +81,24 @@ const AISLE_STYLES = {
   }
 };
 
-const ItemCard = ({ item, toggleItem, setItemToDelete, setItemToEdit, isShoppingMode, updateItem }) => {
+const ItemCard = ({ 
+  item, 
+  setItemToDelete, 
+  setItemToEdit, 
+  isShoppingMode, 
+  isFocused,
+  focusedItemPrice,
+  setFocusedItemPrice,
+  focusedItemQty,
+  setFocusedItemQty,
+  onFocus,
+  onListo,
+  onDesmarcar,
+  toggleItem 
+}) => {
   const controls = useAnimation();
   const isDragging = useRef(false);
   const [isDraggingActive, setIsDraggingActive] = useState(false);
-
-  // Estados locales para los inputs
-  const [price, setPrice] = useState(item.price || '');
-  
-  // EXTRAER LA CANTIDAD NÚMERICA DEL STRING (ej. "3 kilos" -> 3)
-  const defaultQty = useMemo(() => getItemQuantity(item), [item.real_quantity, item.quantity]);
-  
-  const [realQty, setRealQty] = useState(defaultQty);
-
-  // Sincronizar el estado local si el ítem cambia en la base de datos (evitando pisar mientras se edita)
-  useEffect(() => {
-    if (document.activeElement !== document.getElementById(`price-${item.id}`)) {
-      setPrice(item.price || '');
-    }
-  }, [item.price, item.id]);
-
-  useEffect(() => {
-    if (document.activeElement !== document.getElementById(`qty-${item.id}`)) {
-      setRealQty(defaultQty);
-    }
-  }, [defaultQty, item.id]);
-
-  // FIX: Función de actualización para la BD que recalcula el total
-  const handleUpdateDetails = () => {
-    const finalPrice = parseFloat(price) || 0;
-    const finalQty = parseFloat(realQty) || 1;
-    if (typeof updateItem === 'function') {
-      updateItem(item.id, { price: finalPrice, real_quantity: finalQty });
-    }
-  };
 
   const handleDragEnd = (event, info) => {
     setTimeout(() => { isDragging.current = false; }, 150);
@@ -126,7 +110,7 @@ const ItemCard = ({ item, toggleItem, setItemToDelete, setItemToEdit, isShopping
     });
   };
 
-  // FIX: Bloquear drag si estamos editando precios (completado en modo compra)
+  // Bloquear drag si el producto está completado
   const isDragEnabled = !item.completed;
 
   return (
@@ -149,38 +133,37 @@ const ItemCard = ({ item, toggleItem, setItemToDelete, setItemToEdit, isShopping
         style={{ touchAction: "pan-y" }}
         onClick={(e) => {
           if (isDragging.current) { e.preventDefault(); return; }
-          // Ocultar checkbox si no está en modo compra
           if (isShoppingMode) {
-            toggleItem(item.id, item.completed);
+            onFocus(item);
           } else {
-            setItemToEdit(item);
+            // Modo Simple: Toggle completion status directly when clicked!
+            toggleItem(item.id, item.completed);
           }
         }}
-        className={`relative z-10 w-full border border-gray-100 rounded-xl p-4 shadow-sm flex flex-col transition-colors duration-200 ${
-          item.completed 
-            ? isShoppingMode 
-              ? 'bg-blue-50/40 border-blue-100' 
-              : 'bg-gray-50 opacity-60'
-            : 'bg-white'
+        className={`relative z-10 w-full border rounded-xl p-4 shadow-sm flex flex-col transition-all duration-200 ${
+          isFocused 
+            ? 'bg-blue-50/30 border-[#0f62fe] border-2 shadow-md' 
+            : item.completed 
+              ? isShoppingMode 
+                ? 'bg-blue-50/40 border-blue-100' 
+                : 'bg-gray-50 opacity-60 border-gray-100'
+              : 'bg-white border-gray-100'
         }`}
       >
         <div className="flex items-center justify-between w-full">
           <div className="flex items-center gap-3 overflow-hidden">
-            {/* Mostrar Checkbox SOLO en Modo Compra */}
-            {isShoppingMode && (
-              <div className={`w-5 h-5 rounded-md flex items-center justify-center shrink-0 border ${
-                item.completed ? 'bg-[#0f62fe] border-[#0f62fe]' : 'border-gray-300'
-              }`}>
-                {item.completed && <Check size={14} className="text-white" />}
-              </div>
-            )}
             <div className="flex flex-col">
-              <span className={`font-medium ${item.completed ? 'line-through text-gray-500' : 'text-gray-800'}`}>
+              <span className={`font-medium ${item.completed && !isFocused ? 'line-through text-gray-500' : 'text-gray-800'}`}>
                 {item.name}
               </span>
               {item.quantity && (
-                <span className={`text-xs ${item.completed ? 'line-through text-gray-400' : 'text-gray-500'}`}>
+                <span className={`text-xs ${item.completed && !isFocused ? 'line-through text-gray-400' : 'text-gray-500'}`}>
                   {item.quantity}
+                </span>
+              )}
+              {item.completed && !isFocused && isShoppingMode && (item.price || item.real_quantity) && (
+                <span className="text-xs text-[#0f62fe] font-semibold mt-1">
+                  {formatPrice(item.price || 0)} x {item.real_quantity || getItemQuantity(item)}
                 </span>
               )}
             </div>
@@ -198,51 +181,46 @@ const ItemCard = ({ item, toggleItem, setItemToDelete, setItemToEdit, isShopping
 
         {/* CONTENEDOR DE PRECIOS CON PROPAGACIÓN BLOQUEADA */}
         <AnimatePresence>
-          {isShoppingMode && item.completed && (
+          {isShoppingMode && isFocused && (
             <motion.div 
               initial={{ height: 0, opacity: 0, marginTop: 0 }} 
               animate={{ height: 'auto', opacity: 1, marginTop: 12 }} 
               exit={{ height: 0, opacity: 0, marginTop: 0 }}
-              className="flex items-center gap-3 overflow-hidden border-t border-blue-100/50 pt-3"
-              onClick={(e) => e.stopPropagation()} // FIX: Evita que tocar el input desmarque la tarjeta
-              onPointerDown={(e) => e.stopPropagation()} // FIX: Evita que Framer Motion capture el toque
+              className="flex items-end gap-2.5 overflow-hidden border-t border-blue-100/50 pt-3"
+              onClick={(e) => e.stopPropagation()} // Evita que tocar el input desmarque la tarjeta o cambie el foco
+              onPointerDown={(e) => e.stopPropagation()} // Evita que Framer Motion capture el toque
             >
-              {/* Precio Unitario (Acortado) */}
-              <div className="w-28 shrink-0">
-                <label className="text-[10px] font-bold text-gray-400 uppercase block mb-0.5">Precio Unitario</label>
+              {/* Precio Unitario */}
+              <div className="w-[100px] shrink-0">
+                <label className="text-[10px] font-bold text-gray-400 uppercase block mb-1">Precio</label>
                 <div className="relative">
                   <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500 text-sm font-medium">$</span>
                   <input 
                     id={`price-${item.id}`}
                     type="number" 
-                    value={price} 
-                    onChange={(e) => setPrice(e.target.value)}
-                    onBlur={handleUpdateDetails}
-                    className="w-full bg-white border border-gray-200 rounded-lg py-1.5 pl-6 pr-2 text-sm focus:border-[#0f62fe] outline-none shadow-sm"
+                    value={focusedItemPrice} 
+                    onChange={(e) => setFocusedItemPrice(e.target.value)}
+                    className="w-full bg-white border border-gray-200 rounded-lg py-1.5 pl-6 pr-1.5 text-sm focus:border-[#0f62fe] outline-none shadow-sm font-semibold"
                     placeholder="0"
                   />
                 </div>
               </div>
               
               {/* Cantidades / Unidades (Con botones +/-) */}
-              <div className="flex-1 flex flex-col items-center">
-                <label className="text-[10px] font-bold text-gray-400 uppercase block mb-0.5">Cantidad</label>
-                <div className="flex items-center h-[34px]">
+              <div className="w-[96px] shrink-0 flex flex-col items-center">
+                <label className="text-[10px] font-bold text-gray-400 uppercase block mb-1">Cantidad</label>
+                <div className="flex items-center h-[34px] w-full">
                   {/* Botón Decremento (-) */}
                   <button
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
-                      const currentVal = parseFloat(realQty) || 0;
+                      const currentVal = parseFloat(focusedItemQty) || 0;
                       if (currentVal > 1) {
-                        const newVal = currentVal - 1;
-                        setRealQty(newVal);
-                        if (typeof updateItem === 'function') {
-                          updateItem(item.id, { price: parseFloat(price) || 0, real_quantity: newVal });
-                        }
+                        setFocusedItemQty(currentVal - 1);
                       }
                     }}
-                    className="w-8 h-full rounded-l-lg bg-[#1E1E1E] text-white flex items-center justify-center font-bold text-lg hover:bg-black active:scale-95 transition-all shrink-0"
+                    className="w-7 h-full rounded-l-lg bg-blue-50 text-[#0f62fe] hover:bg-blue-100 flex items-center justify-center font-bold text-base active:scale-95 transition-all shrink-0"
                   >
                     -
                   </button>
@@ -251,19 +229,13 @@ const ItemCard = ({ item, toggleItem, setItemToDelete, setItemToEdit, isShopping
                   <input 
                     id={`qty-${item.id}`}
                     type="number" 
-                    value={realQty} 
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      setRealQty(val);
-                    }}
+                    value={focusedItemQty} 
+                    onChange={(e) => setFocusedItemQty(e.target.value)}
                     onBlur={() => {
-                      const finalQty = parseFloat(realQty) || 1;
-                      setRealQty(finalQty);
-                      if (typeof updateItem === 'function') {
-                        updateItem(item.id, { price: parseFloat(price) || 0, real_quantity: finalQty });
-                      }
+                      const finalQty = parseFloat(focusedItemQty) || 1;
+                      setFocusedItemQty(finalQty);
                     }}
-                    className="w-12 h-full border-y border-gray-200 bg-white text-center text-sm font-semibold focus:outline-none focus:border-y-[#0f62fe] outline-none"
+                    className="w-10 h-full border-y border-gray-200 bg-white text-center text-sm font-semibold focus:outline-none focus:border-y-[#0f62fe] outline-none"
                   />
                   
                   {/* Botón Incremento (+) */}
@@ -271,18 +243,41 @@ const ItemCard = ({ item, toggleItem, setItemToDelete, setItemToEdit, isShopping
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
-                      const currentVal = parseFloat(realQty) || 0;
-                      const newVal = currentVal + 1;
-                      setRealQty(newVal);
-                      if (typeof updateItem === 'function') {
-                        updateItem(item.id, { price: parseFloat(price) || 0, real_quantity: newVal });
-                      }
+                      const currentVal = parseFloat(focusedItemQty) || 0;
+                      setFocusedItemQty(currentVal + 1);
                     }}
-                    className="w-8 h-full rounded-r-lg bg-[#1E1E1E] text-white flex items-center justify-center font-bold text-lg hover:bg-black active:scale-95 transition-all shrink-0"
+                    className="w-7 h-full rounded-r-lg bg-blue-50 text-[#0f62fe] hover:bg-blue-100 flex items-center justify-center font-bold text-base active:scale-95 transition-all shrink-0"
                   >
                     +
                   </button>
                 </div>
+              </div>
+
+              {/* Botones de acción: Listo y Desmarcar */}
+              <div className="flex-1 flex gap-1.5 justify-end h-[34px]">
+                {item.completed && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDesmarcar(item.id);
+                    }}
+                    className="h-full bg-slate-50 hover:bg-slate-100 text-slate-500 px-2 rounded-lg text-xs font-semibold flex items-center justify-center transition-all border border-slate-200 active:scale-95"
+                  >
+                    Desmarcar
+                  </button>
+                )}
+                
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onListo(item.id);
+                  }}
+                  className="h-full bg-[#0f62fe] hover:bg-blue-700 text-white px-3.5 rounded-lg text-xs font-extrabold flex items-center justify-center transition-all active:scale-95 shadow-sm"
+                >
+                  Listo
+                </button>
               </div>
             </motion.div>
           )}
@@ -309,13 +304,95 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
   const [itemToDelete, setItemToDelete] = useState(null);
 
   const [isShoppingMode, setIsShoppingMode] = useState(false);
+  const [focusedItemId, setFocusedItemId] = useState(null);
+  const [focusedItemPrice, setFocusedItemPrice] = useState('');
+  const [focusedItemQty, setFocusedItemQty] = useState(1);
 
   useEffect(() => {
     setIsShoppingMode(false);
+    setFocusedItemId(null);
+    setFocusedItemPrice('');
+    setFocusedItemQty(1);
   }, [list?.id]);
+
+  const handleFocusItem = async (item) => {
+    // Si ya hay un item enfocado y es distinto, guardamos sus valores antes de cambiar
+    if (focusedItemId && focusedItemId !== item.id) {
+      const prevItem = allItems.find(it => it.id === focusedItemId);
+      if (prevItem) {
+        const finalPrice = parseFloat(focusedItemPrice) || 0;
+        const finalQty = parseFloat(focusedItemQty) || 1;
+        if (prevItem.price !== finalPrice || getItemQuantity(prevItem) !== finalQty) {
+          try {
+            await updateItem(focusedItemId, { price: finalPrice, real_quantity: finalQty });
+          } catch (err) {
+            console.error("Error saving previous item details:", err);
+          }
+        }
+      }
+    }
+
+    // Enfocar el nuevo item
+    setFocusedItemId(item.id);
+    setFocusedItemPrice(item.price !== undefined && item.price !== null ? item.price : '');
+    setFocusedItemQty(getItemQuantity(item));
+  };
+
+  const handleListo = async (itemId) => {
+    const finalPrice = parseFloat(focusedItemPrice) || 0;
+    const finalQty = parseFloat(focusedItemQty) || 1;
+    
+    try {
+      // 1. Guardar precio y cantidad en base de datos
+      await updateItem(itemId, { price: finalPrice, real_quantity: finalQty });
+      
+      // 2. Si no estaba completado, marcarlo como completado
+      const item = allItems.find(it => it.id === itemId);
+      if (item && !item.completed) {
+        await toggleItem(itemId, false); // toggleItem(itemId, false) lo marca como completado = true
+      }
+      
+      // 3. Limpiar el estado de enfoque
+      setFocusedItemId(null);
+      setFocusedItemPrice('');
+      setFocusedItemQty(1);
+    } catch (err) {
+      console.error("Error setting item ready:", err);
+    }
+  };
+
+  const handleDesmarcar = async (itemId) => {
+    try {
+      // Si estaba completado, lo marcamos como incompleto
+      const item = allItems.find(it => it.id === itemId);
+      if (item && item.completed) {
+        await toggleItem(itemId, true); // toggleItem(itemId, true) lo marca como completado = false
+      }
+      
+      // Limpiar enfoque
+      setFocusedItemId(null);
+      setFocusedItemPrice('');
+      setFocusedItemQty(1);
+    } catch (err) {
+      console.error("Error unmarking item:", err);
+    }
+  };
+
+  const toggleShoppingMode = () => {
+    const nextMode = !isShoppingMode;
+    setIsShoppingMode(nextMode);
+    setFocusedItemId(null);
+    setFocusedItemPrice('');
+    setFocusedItemQty(1);
+  };
 
   const calculateTotal = () => {
     return allItems.reduce((total, item) => {
+      if (isShoppingMode && item.id === focusedItemId) {
+        const price = parseFloat(focusedItemPrice) || 0;
+        const qty = parseFloat(focusedItemQty) || 1;
+        return total + (price * qty);
+      }
       if (!item.completed) return total;
       const price = item.price || 0;
       const qty = getItemQuantity(item);
@@ -539,7 +616,6 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
             <button onClick={() => onEditList && onEditList(list)} className="flex-1 min-w-0 flex items-center gap-2 group text-left">
               <span className="text-2xl leading-none flex items-center shrink-0">{list?.emoji}</span>
               <h2 className="text-xl font-bold text-gray-800 truncate leading-tight pb-1 flex-1 min-w-0">{list?.name}</h2>
-              <Edit2 size={14} className="text-gray-400 group-hover:text-[#0f62fe] shrink-0 ml-1" />
             </button>
           </div>
 
@@ -643,7 +719,7 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
                 if (allItems.length === 0) {
                   setShowEmptyListModal(true);
                 } else {
-                  setIsShoppingMode(!isShoppingMode);
+                  toggleShoppingMode();
                 }
               }}
               className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
@@ -727,11 +803,18 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
                         <ItemCard 
                           key={item.id} 
                           item={item} 
-                          toggleItem={toggleItem} 
                           setItemToDelete={setItemToDelete} 
                           setItemToEdit={setItemToEdit} 
                           isShoppingMode={isShoppingMode}
-                          updateItem={updateItem}
+                          isFocused={item.id === focusedItemId}
+                          focusedItemPrice={focusedItemPrice}
+                          setFocusedItemPrice={setFocusedItemPrice}
+                          focusedItemQty={focusedItemQty}
+                          setFocusedItemQty={setFocusedItemQty}
+                          onFocus={handleFocusItem}
+                          onListo={handleListo}
+                          onDesmarcar={handleDesmarcar}
+                          toggleItem={toggleItem}
                         />
                       ))}
                     </AnimatePresence>
