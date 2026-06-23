@@ -184,26 +184,36 @@ export const db = {
 
     // Mapear list_id → listId para compatibilidad con el frontend
     return (data || []).map((item) => {
-      // ENRIQUECER CON PRECIO Y CANTIDAD REAL DESDE LOCALSTORAGE (Evita errores de esquema en DB)
+      // ENRIQUECER CON PRECIO, CANTIDAD REAL Y CATEGORIA DESDE LOCALSTORAGE (Evita errores de esquema en DB)
       let localPrice = 0;
-      let localRealQty = 1;
+      let localRealQty = null;
+      let localCategory = null;
       try {
         const stored = localStorage.getItem(`shopsync_item_details_${item.id}`);
         if (stored) {
           const parsed = JSON.parse(stored);
           localPrice = parsed.price || 0;
-          localRealQty = parsed.real_quantity || 1;
+          localRealQty = parsed.real_quantity !== undefined ? parsed.real_quantity : null;
+          localCategory = parsed.category || null;
         }
       } catch (e) {
         console.error("Error al cargar detalles de localStorage:", e);
       }
 
-      return {
+      const enriched = {
         ...item,
         listId: item.list_id,
-        price: localPrice,
-        real_quantity: localRealQty
+        price: localPrice
       };
+
+      if (localRealQty !== null) {
+        enriched.real_quantity = localRealQty;
+      }
+      if (localCategory !== null) {
+        enriched.category = localCategory;
+      }
+
+      return enriched;
     });
   },
 
@@ -275,7 +285,7 @@ export const db = {
       delete dbUpdates.listId;
     }
 
-    // EXTRAER PRECIO Y REAL_QUANTITY PARA GUARDAR EN LOCALSTORAGE (Evita error PGRST204 de columna inexistente)
+    // EXTRAER PRECIO, REAL_QUANTITY Y CATEGORIA PARA GUARDAR EN LOCALSTORAGE (Evita error PGRST204 de columna inexistente)
     let hasLocalDetails = false;
     let localDetails = {};
     
@@ -287,6 +297,11 @@ export const db = {
     if ('real_quantity' in dbUpdates) {
       localDetails.real_quantity = dbUpdates.real_quantity;
       delete dbUpdates.real_quantity;
+      hasLocalDetails = true;
+    }
+    if ('category' in dbUpdates) {
+      localDetails.category = dbUpdates.category;
+      delete dbUpdates.category;
       hasLocalDetails = true;
     }
 
@@ -341,9 +356,37 @@ export const db = {
 
     if (error) throw error;
 
-    return (data || []).map(item => ({
-      ...item,
-      listId: item.list_id
-    }));
+    return (data || []).map((dbItem, index) => {
+      const originalItem = items[index];
+      let category = null;
+
+      if (originalItem && originalItem.category) {
+        category = originalItem.category;
+      }
+
+      if (category) {
+        try {
+          const currentStored = localStorage.getItem(`shopsync_item_details_${dbItem.id}`);
+          const current = currentStored ? JSON.parse(currentStored) : {};
+          localStorage.setItem(
+            `shopsync_item_details_${dbItem.id}`, 
+            JSON.stringify({ ...current, category })
+          );
+        } catch (e) {
+          console.error("Error al guardar categoría local en addItems:", e);
+        }
+      }
+
+      const enriched = {
+        ...dbItem,
+        listId: dbItem.list_id
+      };
+
+      if (category) {
+        enriched.category = category;
+      }
+
+      return enriched;
+    });
   },
 };

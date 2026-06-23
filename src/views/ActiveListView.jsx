@@ -12,7 +12,16 @@ import {
   Copy,
   Globe,
   Bell,
-  MoreVertical
+  MoreVertical,
+  Apple,
+  Egg,
+  Package,
+  Croissant,
+  Beef,
+  Sparkles,
+  CupSoda,
+  Snowflake,
+  MoreHorizontal
 } from 'lucide-react';
 import { motion, AnimatePresence, useAnimation } from 'framer-motion';
 import { getCategoryForProduct, formatListDate, getListStatus, formatQuantityText } from '../utils/productDictionary';
@@ -20,6 +29,56 @@ import { CustomDatePickerModal } from '../components/CustomDatePickerModal';
 
 const formatPrice = (amount) => {
   return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(amount);
+};
+
+const getItemQuantity = (item) => {
+  if (item.real_quantity !== undefined && item.real_quantity !== null) {
+    return item.real_quantity;
+  }
+  if (item.quantity) {
+    const match = item.quantity.toString().match(/\d+/);
+    return match ? parseInt(match[0], 10) : 1;
+  }
+  return 1;
+};
+
+const AISLE_STYLES = {
+  'Frutas y Verduras': {
+    Icon: Apple,
+    bgClass: 'bg-green-50 text-green-600 border-green-100/50'
+  },
+  'Lácteos y Huevos': {
+    Icon: Egg,
+    bgClass: 'bg-yellow-50 text-yellow-600 border-yellow-100/50'
+  },
+  'Despensa': {
+    Icon: Package,
+    bgClass: 'bg-amber-50 text-amber-600 border-amber-100/50'
+  },
+  'Panadería y Pastelería': {
+    Icon: Croissant,
+    bgClass: 'bg-orange-50 text-orange-600 border-orange-100/50'
+  },
+  'Carnes y Fiambres': {
+    Icon: Beef,
+    bgClass: 'bg-red-50 text-red-600 border-red-100/50'
+  },
+  'Limpieza y Aseo': {
+    Icon: Sparkles,
+    bgClass: 'bg-teal-50 text-teal-600 border-teal-100/50'
+  },
+  'Bebidas y Snacks': {
+    Icon: CupSoda,
+    bgClass: 'bg-indigo-50 text-indigo-600 border-indigo-100/50'
+  },
+  'Congelados': {
+    Icon: Snowflake,
+    bgClass: 'bg-cyan-50 text-cyan-600 border-cyan-100/50'
+  },
+  'Otros': {
+    Icon: MoreHorizontal,
+    bgClass: 'bg-slate-50 text-slate-600 border-slate-200/50'
+  }
 };
 
 const ItemCard = ({ item, toggleItem, setItemToDelete, setItemToEdit, isShoppingMode, updateItem }) => {
@@ -30,14 +89,7 @@ const ItemCard = ({ item, toggleItem, setItemToDelete, setItemToEdit, isShopping
   const [price, setPrice] = useState(item.price || '');
   
   // EXTRAER LA CANTIDAD NÚMERICA DEL STRING (ej. "3 kilos" -> 3)
-  const defaultQty = useMemo(() => {
-    if (item.real_quantity) return item.real_quantity;
-    if (item.quantity) {
-      const match = item.quantity.toString().match(/\d+/);
-      return match ? parseInt(match[0], 10) : 1;
-    }
-    return 1;
-  }, [item.real_quantity, item.quantity]);
+  const defaultQty = useMemo(() => getItemQuantity(item), [item.real_quantity, item.quantity]);
   
   const [realQty, setRealQty] = useState(defaultQty);
 
@@ -203,28 +255,17 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
 
   const [itemToDelete, setItemToDelete] = useState(null);
 
-  const [isShoppingMode, setIsShoppingMode] = useState(() => {
-    try {
-      const stored = localStorage.getItem(`shopping_mode_${list?.id}`);
-      return stored ? JSON.parse(stored) : false;
-    } catch {
-      return false;
-    }
-  });
+  const [isShoppingMode, setIsShoppingMode] = useState(false);
 
   useEffect(() => {
-    try {
-      localStorage.setItem(`shopping_mode_${list?.id}`, JSON.stringify(isShoppingMode));
-    } catch (e) {
-      console.error('Error al guardar shopping mode en localStorage:', e);
-    }
-  }, [isShoppingMode, list?.id]);
+    setIsShoppingMode(false);
+  }, [list?.id]);
 
   const calculateTotal = () => {
     return allItems.reduce((total, item) => {
       if (!item.completed) return total;
       const price = item.price || 0;
-      const qty = item.real_quantity || 1;
+      const qty = getItemQuantity(item);
       return total + (price * qty);
     }, 0);
   };
@@ -235,6 +276,7 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
   });
   const [showCompleteModal, setShowCompleteModal] = useState(false);
   const [modalType, setModalType] = useState('auto');
+  const [showEmptyListModal, setShowEmptyListModal] = useState(false);
 
   // Estados para modal de edición de fecha
   const [showDateModal, setShowDateModal] = useState(false);
@@ -385,7 +427,7 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
 
   // 1. Agrupar items
   const groupedItems = items.reduce((acc, item) => {
-    const category = getCategoryForProduct(item.name);
+    const category = item.category || getCategoryForProduct(item.name);
     if (!acc[category]) acc[category] = [];
     acc[category].push(item);
     return acc;
@@ -530,7 +572,13 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
           {/* Izquierda: Modo Compra Toggle */}
           <div className="flex items-center gap-3">
             <button 
-              onClick={() => setIsShoppingMode(!isShoppingMode)}
+              onClick={() => {
+                if (allItems.length === 0) {
+                  setShowEmptyListModal(true);
+                } else {
+                  setIsShoppingMode(!isShoppingMode);
+                }
+              }}
               className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
                 isShoppingMode ? 'bg-[#0f62fe]' : 'bg-gray-300'
               }`}
@@ -597,28 +645,33 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
           </div>
         ) : (
           <div className="space-y-6">
-            {categories.map((category) => (
-              <div key={category} className="mb-6 last:mb-2">
-                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 px-1">
-                  {category}
-                </h3>
-                <div className="flex flex-col gap-2.5">
-                  <AnimatePresence initial={false}>
-                    {groupedItems[category].map((item) => (
-                      <ItemCard 
-                        key={item.id} 
-                        item={item} 
-                        toggleItem={toggleItem} 
-                        setItemToDelete={setItemToDelete} 
-                        setItemToEdit={setItemToEdit} 
-                        isShoppingMode={isShoppingMode}
-                        updateItem={updateItem}
-                      />
-                    ))}
-                  </AnimatePresence>
+            {categories.map((category) => {
+              const style = AISLE_STYLES[category] || AISLE_STYLES['Otros'];
+              const CategoryIcon = style.Icon;
+              return (
+                <div key={category} className="mb-6 last:mb-2">
+                  <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold uppercase tracking-wider mb-3 ml-1 ${style.bgClass} border`}>
+                    <CategoryIcon size={13} className="shrink-0" />
+                    <span>{category}</span>
+                  </div>
+                  <div className="flex flex-col gap-2.5">
+                    <AnimatePresence initial={false}>
+                      {groupedItems[category].map((item) => (
+                        <ItemCard 
+                          key={item.id} 
+                          item={item} 
+                          toggleItem={toggleItem} 
+                          setItemToDelete={setItemToDelete} 
+                          setItemToEdit={setItemToEdit} 
+                          isShoppingMode={isShoppingMode}
+                          updateItem={updateItem}
+                        />
+                      ))}
+                    </AnimatePresence>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
@@ -915,6 +968,53 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
                   className="flex-1 h-11 bg-[#0f62fe] hover:bg-[#0b51d4] text-white font-semibold text-sm rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Publicar
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Modal para indicar que la lista está vacía */}
+      <AnimatePresence>
+        {showEmptyListModal && (
+          <>
+            {/* Backdrop de fondo */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowEmptyListModal(false)}
+              className="absolute inset-0 bg-black/45 backdrop-blur-[1px] z-40 cursor-pointer"
+            />
+
+            {/* Contenedor del Dialog */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              className="absolute top-1/2 left-5 right-5 -translate-y-1/2 bg-white rounded-3xl p-6 shadow-2xl z-50 flex flex-col space-y-4 border border-slate-100"
+            >
+              <div className="flex flex-col items-center">
+                <div className="w-12 h-12 bg-red-50 text-red-500 rounded-full flex items-center justify-center mb-4">
+                  <ShoppingBag size={24} />
+                </div>
+                <h3 className="text-xl font-bold text-slate-800 text-center mb-2">
+                  Lista vacía
+                </h3>
+                <p className="text-gray-500 text-center text-sm mb-4 font-medium">
+                  Debes agregar al menos un producto a la lista antes de activar el Modo Compra.
+                </p>
+              </div>
+
+              <div className="pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowEmptyListModal(false)}
+                  className="w-full h-11 bg-[#0f62fe] hover:bg-[#0b51d4] text-white font-semibold text-sm rounded-xl transition-colors"
+                >
+                  Entendido
                 </button>
               </div>
             </motion.div>

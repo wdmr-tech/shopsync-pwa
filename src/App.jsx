@@ -187,7 +187,8 @@ function App() {
 
       const templateItems = aiResponse.items.map(item => ({
         name: item.name,
-        quantity: formatQuantityText(item.quantity, item.unit)
+        quantity: formatQuantityText(item.quantity, item.unit),
+        category: item.category
       }));
 
       const newList = await addList(
