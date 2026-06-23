@@ -150,24 +150,32 @@ const ItemCard = ({
               : 'bg-white border-gray-100'
         }`}
       >
-        <div className="flex items-center justify-between w-full">
-          <div className="flex items-center gap-3 overflow-hidden">
-            <div className="flex flex-col">
-              <span className={`font-medium ${item.completed && !isFocused ? 'line-through text-gray-500' : 'text-gray-800'}`}>
-                {item.name}
+        <div className="flex items-center justify-between w-full gap-3">
+          <div className="flex-1 min-w-0 flex flex-col">
+            <span className={`font-medium truncate ${item.completed && !isFocused ? 'line-through text-gray-500' : 'text-gray-800'}`}>
+              {item.name}
+            </span>
+            {item.quantity && (
+              <span className={`text-xs ${item.completed && !isFocused ? 'line-through text-gray-400' : 'text-gray-500'}`}>
+                {item.quantity}
               </span>
-              {item.quantity && (
-                <span className={`text-xs ${item.completed && !isFocused ? 'line-through text-gray-400' : 'text-gray-500'}`}>
-                  {item.quantity}
-                </span>
-              )}
-              {item.completed && !isFocused && isShoppingMode && (item.price || item.real_quantity) && (
-                <span className="text-xs text-[#0f62fe] font-semibold mt-1">
-                  {formatPrice(item.price || 0)} x {item.real_quantity || getItemQuantity(item)}
-                </span>
-              )}
-            </div>
+            )}
+            {item.completed && !isFocused && isShoppingMode && (item.price || item.real_quantity) && (
+              <span className="text-base text-[#0f62fe] font-semibold mt-1 block">
+                {formatPrice(item.price || 0)} x {item.real_quantity || getItemQuantity(item)}
+              </span>
+            )}
           </div>
+
+          {/* Botón Editar (Solo en Modo Compra, si está completado y no enfocado) */}
+          {isShoppingMode && item.completed && !isFocused && (
+            <button 
+              onClick={(e) => { e.stopPropagation(); onFocus(item); }}
+              className="w-20 h-[34px] bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold flex items-center justify-center transition-all active:scale-95 border border-slate-200 shrink-0"
+            >
+              Editar
+            </button>
+          )}
 
           {!item.completed && !isShoppingMode && (
             <button 
@@ -253,28 +261,15 @@ const ItemCard = ({
                 </div>
               </div>
 
-              {/* Botones de acción: Listo y Desmarcar */}
-              <div className="flex-1 flex gap-1.5 justify-end h-[34px]">
-                {item.completed && (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onDesmarcar(item.id);
-                    }}
-                    className="h-full bg-slate-50 hover:bg-slate-100 text-slate-500 px-2 rounded-lg text-xs font-semibold flex items-center justify-center transition-all border border-slate-200 active:scale-95"
-                  >
-                    Desmarcar
-                  </button>
-                )}
-                
+              {/* Botón de acción: Listo */}
+              <div className="flex-1 flex justify-end h-[34px]">
                 <button
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation();
                     onListo(item.id);
                   }}
-                  className="h-full bg-[#0f62fe] hover:bg-blue-700 text-white px-3.5 rounded-lg text-xs font-extrabold flex items-center justify-center transition-all active:scale-95 shadow-sm"
+                  className="w-20 h-full bg-[#0f62fe] hover:bg-blue-700 text-white rounded-lg text-xs font-extrabold flex items-center justify-center transition-all active:scale-95 shadow-sm shrink-0"
                 >
                   Listo
                 </button>
@@ -336,6 +331,15 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
     setFocusedItemId(item.id);
     setFocusedItemPrice(item.price !== undefined && item.price !== null ? item.price : '');
     setFocusedItemQty(getItemQuantity(item));
+
+    // Si el producto estaba completado, se desmarca al entrar en edición
+    if (item.completed) {
+      try {
+        await toggleItem(item.id, true); // toggleItem(id, true) lo marca como completado = false
+      } catch (err) {
+        console.error("Error desmarcando al editar:", err);
+      }
+    }
   };
 
   const handleListo = async (itemId) => {
