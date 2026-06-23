@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { 
   ChevronLeft, 
   Plus, 
@@ -26,43 +26,58 @@ const ItemCard = ({ item, toggleItem, setItemToDelete, setItemToEdit, isShopping
   const controls = useAnimation();
   const isDragging = useRef(false);
 
+  // Estados locales para los inputs
   const [price, setPrice] = useState(item.price || '');
-  const [realQty, setRealQty] = useState(item.real_quantity || 1);
+  
+  // EXTRAER LA CANTIDAD NÚMERICA DEL STRING (ej. "3 kilos" -> 3)
+  const defaultQty = useMemo(() => {
+    if (item.real_quantity) return item.real_quantity;
+    if (item.quantity) {
+      const match = item.quantity.toString().match(/\d+/);
+      return match ? parseInt(match[0], 10) : 1;
+    }
+    return 1;
+  }, [item.real_quantity, item.quantity]);
+  
+  const [realQty, setRealQty] = useState(defaultQty);
 
-  useEffect(() => { controls.start({ x: 0 }); }, [item.id, controls]);
-
+  // Sincronizar el estado local si el ítem cambia en la base de datos
   useEffect(() => {
     setPrice(item.price || '');
-    setRealQty(item.real_quantity || 1);
-  }, [item.price, item.real_quantity]);
+    setRealQty(defaultQty);
+  }, [item.price, defaultQty]);
+
+  // FIX: Función de actualización para la BD que recalcula el total
+  const handleUpdateDetails = () => {
+    const finalPrice = parseFloat(price) || 0;
+    const finalQty = parseFloat(realQty) || 1;
+    if (typeof updateItem === 'function') {
+      updateItem(item.id, { price: finalPrice, real_quantity: finalQty });
+    }
+  };
 
   const handleDragEnd = (event, info) => {
     setTimeout(() => { isDragging.current = false; }, 150);
-    // Solo permitimos swipe para borrar si NO está completado
     if (!item.completed && info.offset.x < -60) {
       setItemToDelete(item.id);
     }
     controls.start({ x: 0, transition: { type: "spring", stiffness: 300, damping: 30 } });
   };
 
-  const handleUpdateDetails = () => {
-    if (typeof updateItem === 'function') {
-      updateItem(item.id, { price: parseFloat(price) || 0, real_quantity: parseFloat(realQty) || 1 });
-    }
-  };
+  // FIX: Bloquear drag si estamos editando precios (completado en modo compra)
+  const isDragEnabled = !item.completed;
 
   return (
     <div className="relative mb-2">
-      {/* Capa Base: Fondo Rojo para borrar (Ligeramente encogido para evitar sangrado en esquinas) */}
-      {!item.completed && (
+      {/* Fondo Rojo (Solo visible si el drag está permitido) */}
+      {isDragEnabled && (
         <div className="absolute top-[1px] bottom-[1px] right-[1px] w-[80%] bg-red-500 rounded-xl flex items-center justify-end pr-4 text-white -z-0">
           <Trash2 size={20} />
         </div>
       )}
 
-      {/* Tarjeta Deslizable Blanca */}
       <motion.div
-        drag={item.completed ? false : "x"} // Desactiva drag si está completado
+        drag={isDragEnabled ? "x" : false}
         dragConstraints={{ left: -80, right: 0 }}
         dragElastic={0.1}
         onDragStart={() => { isDragging.current = true; }}
@@ -72,22 +87,20 @@ const ItemCard = ({ item, toggleItem, setItemToDelete, setItemToEdit, isShopping
         style={{ touchAction: "pan-y" }}
         onClick={(e) => {
           if (isDragging.current) { e.preventDefault(); return; }
+          // Ocultar checkbox si no está en modo compra
           if (isShoppingMode) {
-            // SOLO permite tachar si estamos de compras
             toggleItem(item.id, item.completed);
           } else {
-            // Al tocar en modo planificación, abrimos el modal de edición
             setItemToEdit(item);
           }
         }}
-        className={`relative z-10 w-full border border-gray-100 rounded-xl p-4 shadow-sm flex flex-col transition-all duration-200 ${
-          item.completed && isShoppingMode ? 'bg-blue-50/30 border-blue-100' : 'bg-white'
+        className={`relative z-10 w-full border border-gray-100 rounded-xl p-4 shadow-sm flex flex-col transition-colors duration-200 ${
+          item.completed && isShoppingMode ? 'bg-blue-50/40 border-blue-100' : 'bg-white'
         }`}
       >
-        {/* Fila Principal (Nombre y Editar) */}
         <div className="flex items-center justify-between w-full">
-          <div className="flex items-center gap-3">
-            {/* Checkbox (SOLO si isShoppingMode) */}
+          <div className="flex items-center gap-3 overflow-hidden">
+            {/* Mostrar Checkbox SOLO en Modo Compra */}
             {isShoppingMode && (
               <div className={`w-5 h-5 rounded-md flex items-center justify-center shrink-0 border ${
                 item.completed ? 'bg-[#0f62fe] border-[#0f62fe]' : 'border-gray-300'
@@ -95,55 +108,49 @@ const ItemCard = ({ item, toggleItem, setItemToDelete, setItemToEdit, isShopping
                 {item.completed && <Check size={14} className="text-white" />}
               </div>
             )}
-            
             <div className="flex flex-col">
               <span className={`font-medium ${item.completed && isShoppingMode ? 'line-through text-gray-500' : 'text-gray-800'}`}>
                 {item.name}
               </span>
-              <div className="flex items-center gap-1.5">
-                {item.quantity && (
-                  <span className="text-xs text-gray-500">{item.quantity}</span>
-                )}
-                {item.price && (!item.completed || !isShoppingMode) ? (
-                  <span className="text-xs font-semibold text-green-600">
-                    • {formatPrice(item.price * (item.real_quantity || 1))}
-                  </span>
-                ) : null}
-              </div>
+              {item.quantity && (
+                <span className={`text-xs ${item.completed && isShoppingMode ? 'line-through text-gray-400' : 'text-gray-500'}`}>
+                  {item.quantity}
+                </span>
+              )}
             </div>
           </div>
 
-          {/* Lápiz de edición normal */}
-          {!item.completed && (
+          {!item.completed && !isShoppingMode && (
             <button 
-              onClick={(e) => { e.stopPropagation(); setItemToEdit(item); }} 
-              className="p-2 text-gray-400 hover:text-[#0f62fe] transition-colors"
+              onClick={(e) => { e.stopPropagation(); setItemToEdit(item); }}
+              className="p-2 text-gray-400 hover:text-[#0f62fe]"
             >
               <Edit2 size={16} />
             </button>
           )}
         </div>
 
-        {/* Fila Expandible (Precios) - Se muestra SOLO si está completado en modo compra */}
+        {/* CONTENEDOR DE PRECIOS CON PROPAGACIÓN BLOQUEADA */}
         <AnimatePresence>
           {isShoppingMode && item.completed && (
             <motion.div 
               initial={{ height: 0, opacity: 0, marginTop: 0 }} 
               animate={{ height: 'auto', opacity: 1, marginTop: 12 }} 
               exit={{ height: 0, opacity: 0, marginTop: 0 }}
-              className="flex items-center gap-2 overflow-hidden border-t border-blue-100 pt-3 w-full"
+              className="flex items-center gap-3 overflow-hidden border-t border-blue-100/50 pt-3"
+              onClick={(e) => e.stopPropagation()} // FIX: Evita que tocar el input desmarque la tarjeta
+              onPointerDown={(e) => e.stopPropagation()} // FIX: Evita que Framer Motion capture el toque
             >
               <div className="flex-1">
-                <label className="text-[10px] font-bold text-gray-400 uppercase">Precio Unit.</label>
+                <label className="text-[10px] font-bold text-gray-400 uppercase">Precio Unitario</label>
                 <div className="relative">
-                  <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-500 text-sm">$</span>
+                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500 text-sm font-medium">$</span>
                   <input 
                     type="number" 
                     value={price} 
                     onChange={(e) => setPrice(e.target.value)}
                     onBlur={handleUpdateDetails}
-                    onClick={(e) => e.stopPropagation()} // Prevenir que se desmarque la tarjeta
-                    className="w-full bg-white border border-gray-200 rounded-lg py-1.5 pl-5 pr-2 text-sm focus:border-[#0f62fe] outline-none font-sans"
+                    className="w-full bg-white border border-gray-200 rounded-lg py-1.5 pl-6 pr-2 text-sm focus:border-[#0f62fe] outline-none shadow-sm"
                     placeholder="0"
                   />
                 </div>
@@ -156,8 +163,7 @@ const ItemCard = ({ item, toggleItem, setItemToDelete, setItemToEdit, isShopping
                   value={realQty} 
                   onChange={(e) => setRealQty(e.target.value)}
                   onBlur={handleUpdateDetails}
-                  onClick={(e) => e.stopPropagation()}
-                  className="w-full bg-white border border-gray-200 rounded-lg py-1.5 px-2 text-sm focus:border-[#0f62fe] outline-none font-sans"
+                  className="w-full bg-white border border-gray-200 rounded-lg py-1.5 px-3 text-sm text-center focus:border-[#0f62fe] outline-none shadow-sm"
                 />
               </div>
             </motion.div>
