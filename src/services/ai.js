@@ -5,8 +5,8 @@ export const generateListWithGemini = async (userPrompt) => {
   const apiKey = import.meta.env.VITE_GEMINI_API_KEY || localStorage.getItem('VITE_GEMINI_API_KEY') || "TU_API_KEY_AQUI"; 
   const genAI = new GoogleGenerativeAI(apiKey);
   
-  // Usamos gemini-1.5-flash porque es más rápido y barato para tareas de texto
-  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+  // Usamos gemini-2.5-flash porque es el modelo recomendado, más rápido y compatible con claves nuevas
+  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
   // SYSTEM PROMPT ESTRICTO PARA FORZAR JSON
   const systemPrompt = `
