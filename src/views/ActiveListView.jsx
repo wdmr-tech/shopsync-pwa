@@ -780,12 +780,14 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
           </div>
         ) : items.length === 0 ? (
           <div className="py-20 text-center flex flex-col items-center justify-center space-y-3">
-            <div className="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center text-slate-400">
-              <ShoppingBag size={20} />
-            </div>
+            <img 
+              src="/empty_state.png" 
+              alt="Sin productos" 
+              className="w-28 h-28 object-contain mb-1 select-none opacity-80" 
+            />
             {allItems.length === 0 ? (
               <>
-                <p className="text-sm font-semibold text-slate-500">Esta lista está vacía</p>
+                <p className="text-sm font-semibold text-slate-500">Añade productos para iniciar tu lista</p>
                 <p className="text-xs text-slate-400">Agrega productos con el botón de abajo.</p>
               </>
             ) : (

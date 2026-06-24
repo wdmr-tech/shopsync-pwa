@@ -588,13 +588,15 @@ export function HomeView({ lists, loading, removeList, onSelectList, onCreateLis
         ) : filteredLists.length === 0 ? (
           <div className="flex-1 overflow-y-auto lists-scroll px-4 pb-[140px]">
             <div className="py-20 text-center flex flex-col items-center justify-center space-y-3">
-              <span className="text-5xl select-none">
-                {activeFilter === 'Todas' ? '📝' : '🔍'}
-              </span>
+              <img 
+                src="/empty_state.png" 
+                alt="Sin listas" 
+                className="w-28 h-28 object-contain mb-1 select-none opacity-80" 
+              />
               <p className="text-sm font-semibold text-slate-500">
                 {activeFilter === 'Todas'
-                  ? '¿Qué compramos hoy?'
-                  : `Sin listas "${activeFilter.toLowerCase()}"`}
+                  ? 'Sin listas'
+                  : `Sin listas ${activeFilter.toLowerCase()}`}
               </p>
               <p className="text-xs text-slate-400">
                 {activeFilter === 'Todas'
