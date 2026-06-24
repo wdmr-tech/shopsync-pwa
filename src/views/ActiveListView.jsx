@@ -771,7 +771,7 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
       </div>
 
       {/* Listado Scrolleable */}
-      <div className="flex-1 overflow-y-auto hide-scrollbar px-5 pt-4 pb-32 space-y-2.5">
+      <div className={`flex-1 overflow-y-auto hide-scrollbar px-5 pt-4 pb-32 space-y-2.5 ${(!loading && items.length === 0) ? 'flex flex-col justify-center' : ''}`}>
         {loading ? (
           <div className="space-y-2.5 py-4">
             {[1, 2, 3].map((n) => (
@@ -779,18 +779,18 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
             ))}
           </div>
         ) : items.length === 0 ? (
-          <div className="py-20 text-center flex flex-col items-center justify-center space-y-3">
+          <div className="text-center flex flex-col items-center justify-center space-y-3">
             <img 
               src="/empty_state.png" 
               alt="Sin productos" 
               className="w-28 h-28 object-contain mb-1 select-none opacity-80" 
             />
             {allItems.length === 0 ? (
-              <p className="text-base font-semibold text-slate-600/90 whitespace-nowrap">
+              <p className="text-base font-semibold text-[#b0b7c5] whitespace-nowrap">
                 Añade productos para iniciar tu lista
               </p>
             ) : (
-              <p className="text-base font-semibold text-slate-600/90 whitespace-nowrap">
+              <p className="text-base font-semibold text-[#b0b7c5] whitespace-nowrap">
                 Todo listo por aquí
               </p>
             )}

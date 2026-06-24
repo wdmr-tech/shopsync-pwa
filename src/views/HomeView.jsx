@@ -586,14 +586,14 @@ export function HomeView({ lists, loading, removeList, onSelectList, onCreateLis
             </div>
           </div>
         ) : filteredLists.length === 0 ? (
-          <div className="flex-1 overflow-y-auto lists-scroll px-4 pb-[140px]">
-            <div className="py-20 text-center flex flex-col items-center justify-center space-y-3">
+          <div className="flex-1 overflow-y-auto lists-scroll px-4 pb-[140px] flex flex-col justify-center">
+            <div className="text-center flex flex-col items-center justify-center space-y-3">
               <img 
                 src="/empty_state.png" 
                 alt="Sin listas" 
                 className="w-28 h-28 object-contain mb-1 select-none opacity-80" 
               />
-              <p className="text-base font-semibold text-slate-600/90 whitespace-nowrap">
+              <p className="text-base font-semibold text-[#b0b7c5] whitespace-nowrap">
                 {activeFilter === 'Todas'
                   ? 'Sin listas'
                   : `Sin listas ${activeFilter.toLowerCase()}`}
