@@ -771,7 +771,7 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
             <img 
               src="/empty_state.png" 
               alt="Sin productos" 
-              className="w-28 h-28 object-contain mb-1 select-none opacity-80" 
+              className="w-28 h-28 object-contain mb-1 select-none opacity-80 translate-x-[7px]" 
             />
             {allItems.length === 0 ? (
               <p className="text-base font-semibold text-[#b0b7c5] whitespace-nowrap">
