@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Search, Copy } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { COMMUNITY_CATEGORIES, COMMUNITY_LISTS } from '../utils/communityLists';
@@ -37,6 +37,83 @@ const ACTIVE_CATEGORY_STYLES = {
 export function ExploreView({ onSelectTemplate, onCloneTemplate, communityLists = COMMUNITY_LISTS }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState('Todas');
+  const scrollRef = useRef(null);
+
+  // Lógica de scroll horizontal mediante arrastre de mouse y rueda para desktop
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+
+    // 1. Scroll con la rueda del mouse (transformar scroll vertical en horizontal)
+    const handleWheel = (e) => {
+      if (e.deltaY !== 0) {
+        e.preventDefault();
+        el.scrollLeft += e.deltaY * 0.8;
+      }
+    };
+
+    // 2. Scroll con arrastre del mouse (Drag to scroll)
+    let isDown = false;
+    let startXVal = 0;
+    let scrollLeftVal = 0;
+    let hasDragged = false;
+
+    const handleMouseDown = (e) => {
+      if (e.button !== 0) return;
+      isDown = true;
+      el.classList.add('cursor-grabbing');
+      el.classList.remove('cursor-grab');
+      startXVal = e.pageX - el.offsetLeft;
+      scrollLeftVal = el.scrollLeft;
+      hasDragged = false;
+    };
+
+    const handleMouseLeave = () => {
+      isDown = false;
+      el.classList.remove('cursor-grabbing');
+      el.classList.add('cursor-grab');
+    };
+
+    const handleMouseUp = (e) => {
+      isDown = false;
+      el.classList.remove('cursor-grabbing');
+      el.classList.add('cursor-grab');
+    };
+
+    const handleMouseMove = (e) => {
+      if (!isDown) return;
+      const x = e.pageX - el.offsetLeft;
+      const walk = (x - startXVal) * 1.5;
+      if (Math.abs(walk) > 5) {
+        hasDragged = true;
+      }
+      el.scrollLeft = scrollLeftVal - walk;
+    };
+
+    const handleCaptureClick = (e) => {
+      if (hasDragged) {
+        e.preventDefault();
+        e.stopPropagation();
+        hasDragged = false;
+      }
+    };
+
+    el.addEventListener('wheel', handleWheel, { passive: false });
+    el.addEventListener('mousedown', handleMouseDown);
+    el.addEventListener('mouseleave', handleMouseLeave);
+    el.addEventListener('mouseup', handleMouseUp);
+    el.addEventListener('mousemove', handleMouseMove);
+    el.addEventListener('click', handleCaptureClick, true);
+
+    return () => {
+      el.removeEventListener('wheel', handleWheel);
+      el.removeEventListener('mousedown', handleMouseDown);
+      el.removeEventListener('mouseleave', handleMouseLeave);
+      el.removeEventListener('mouseup', handleMouseUp);
+      el.removeEventListener('mousemove', handleMouseMove);
+      el.removeEventListener('click', handleCaptureClick, true);
+    };
+  }, []);
 
   // Filtrado de listas basado en categoría y query de búsqueda
   const filteredLists = communityLists.filter((list) => {
@@ -86,7 +163,10 @@ export function ExploreView({ onSelectTemplate, onCloneTemplate, communityLists 
       </div>
 
       {/* ── CHIPS DE CATEGORÍAS ── */}
-      <div className="shrink-0 flex mx-4 overflow-x-auto gap-2 pb-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+      <div 
+        ref={scrollRef}
+        className="shrink-0 flex mx-4 overflow-x-auto gap-2 pb-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] cursor-grab select-none"
+      >
         {COMMUNITY_CATEGORIES.map((category) => {
           const isActive = activeFilter === category;
           const styles = ACTIVE_CATEGORY_STYLES[category] || {
