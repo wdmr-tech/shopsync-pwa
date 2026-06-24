@@ -259,6 +259,8 @@ export function HomeView({ lists, loading, removeList, onSelectList, onCreateLis
   const [showRemindersModal, setShowRemindersModal] = useState(false);
   const touchStartX = useRef(null);
   const touchEndX = useRef(null);
+  const mouseStartX = useRef(null);
+  const mouseStartY = useRef(null);
   const filterRefs = useRef({});
   const scrollRef = useRef(null);
 
@@ -651,6 +653,43 @@ export function HomeView({ lists, loading, removeList, onSelectList, onCreateLis
           const distance = touchStartX.current - touchEndX.current;
           const isLeftSwipe = distance > 50; // Deslizar hacia la izquierda (Siguiente tab)
           const isRightSwipe = distance < -50; // Deslizar hacia la derecha (Tab anterior)
+
+          if (isLeftSwipe || isRightSwipe) {
+            const currentIndex = FILTERS.indexOf(activeFilter);
+            let newIndex = currentIndex;
+
+            if (isLeftSwipe && currentIndex < FILTERS.length - 1) {
+              newIndex = currentIndex + 1;
+            } else if (isRightSwipe && currentIndex > 0) {
+              newIndex = currentIndex - 1;
+            }
+
+            if (newIndex !== currentIndex) {
+              setActiveFilter(FILTERS[newIndex]);
+            }
+          }
+        }}
+        onMouseDown={(e) => {
+          if (e.button !== 0) return;
+          // Ignorar clicks en tarjetas de lista o botones
+          if (e.target.closest('li') || e.target.closest('button')) return;
+          mouseStartX.current = e.clientX;
+          mouseStartY.current = e.clientY;
+        }}
+        onMouseUp={(e) => {
+          if (mouseStartX.current === null) return;
+          
+          const distanceX = mouseStartX.current - e.clientX;
+          const distanceY = mouseStartY.current - e.clientY;
+          
+          mouseStartX.current = null;
+          mouseStartY.current = null;
+          
+          // Validar que sea un swipe predominantemente horizontal
+          if (Math.abs(distanceY) > Math.abs(distanceX)) return;
+          
+          const isLeftSwipe = distanceX > 60; // Deslizar hacia la izquierda (Siguiente tab)
+          const isRightSwipe = distanceX < -60; // Deslizar hacia la derecha (Tab anterior)
 
           if (isLeftSwipe || isRightSwipe) {
             const currentIndex = FILTERS.indexOf(activeFilter);
