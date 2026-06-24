@@ -135,9 +135,9 @@ function ListCard({ list, onListClick, onSwipeDelete, onDragHandleDown }) {
 
               {/* Derecha: Fecha (si existe) */}
               {list.plannedDate && (
-                <div className="flex items-center gap-1.5 leading-none">
-                  <Calendar size={13} className="text-blue-400" />
-                  <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">
+                <div className="flex items-center gap-1.5">
+                  <Calendar size={13} className="text-blue-400 shrink-0" />
+                  <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider leading-none">
                     {formatListDate(list.plannedDate)}
                   </span>
                 </div>

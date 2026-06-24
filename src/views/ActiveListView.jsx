@@ -462,20 +462,6 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
   const touchEndX = useRef(null);
 
   const [isExiting, setIsExiting] = useState(false);
-  const [showSwipeHint, setShowSwipeHint] = useState(false);
-
-  useEffect(() => {
-    const hasSeenHint = localStorage.getItem('hasSeenSwipeHint');
-    if (!hasSeenHint) {
-      setShowSwipeHint(true);
-      // Ocultar la pista automáticamente después de 4 segundos
-      const timer = setTimeout(() => {
-        setShowSwipeHint(false);
-        localStorage.setItem('hasSeenSwipeHint', 'true');
-      }, 4000);
-      return () => clearTimeout(timer);
-    }
-  }, []);
 
   // Refs para evitar clausuras obsoletas en el callback del popstate
   const listRef = useRef(list);
@@ -609,24 +595,7 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
         }
       }}
     >
-      <AnimatePresence>
-        {showSwipeHint && (
-          <motion.div 
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0 }}
-            className="absolute top-1/3 left-4 z-50 bg-black/70 text-white px-4 py-2 rounded-full flex items-center gap-2 pointer-events-none"
-          >
-            <motion.div
-              animate={{ x: [0, 8, 0] }}
-              transition={{ repeat: Infinity, duration: 1.5 }}
-            >
-              <ArrowRight size={16} />
-            </motion.div>
-            <span className="text-xs font-medium">Desliza para volver</span>
-          </motion.div>
-        )}
-      </AnimatePresence>
+
       
       {/* Cabecera Móvil (Estática) */}
       <header className="px-5 py-4 border-b border-slate-100 bg-white flex items-center justify-between shrink-0 relative">
