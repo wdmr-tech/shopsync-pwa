@@ -375,10 +375,45 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
         await toggleItem(itemId, false); // toggleItem(itemId, false) lo marca como completado = true
       }
       
-      // 3. Limpiar el estado de enfoque
-      setFocusedItemId(null);
-      setFocusedItemPrice('');
-      setFocusedItemQty(1);
+      // 3. Buscar el siguiente item incompleto en el orden visual de la lista
+      const visualItems = categories.flatMap(cat => groupedItems[cat] || []);
+      const currentIndex = visualItems.findIndex(it => it.id === itemId);
+      
+      let nextItem = null;
+      if (currentIndex !== -1) {
+        // Buscar hacia abajo
+        for (let i = currentIndex + 1; i < visualItems.length; i++) {
+          if (!visualItems[i].completed && visualItems[i].id !== itemId) {
+            nextItem = visualItems[i];
+            break;
+          }
+        }
+        // Si no se encuentra hacia abajo, buscar desde el principio (wrap around)
+        if (!nextItem) {
+          for (let i = 0; i < currentIndex; i++) {
+            if (!visualItems[i].completed && visualItems[i].id !== itemId) {
+              nextItem = visualItems[i];
+              break;
+            }
+          }
+        }
+      }
+      
+      if (nextItem) {
+        // Auto-enfocar el siguiente item
+        setWasCompletedBeforeFocus(nextItem.completed);
+        setFocusedItemId(nextItem.id);
+        setFocusedItemPrice(nextItem.price !== undefined && nextItem.price !== null ? nextItem.price : '');
+        setFocusedItemQty(getItemQuantity(nextItem));
+        if (nextItem.completed) {
+          await toggleItem(nextItem.id, true);
+        }
+      } else {
+        // Si no hay más productos pendientes, limpiar enfoque
+        setFocusedItemId(null);
+        setFocusedItemPrice('');
+        setFocusedItemQty(1);
+      }
     } catch (err) {
       console.error("Error setting item ready:", err);
     }
@@ -911,7 +946,7 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
                 </h3>
                 {modalType === 'auto' ? (
                   <p className="text-gray-500 text-center text-sm mb-4 font-medium">
-                    Has marcado todos los productos. ¿Deseas dar por finalizada esta compra?
+                    Has marcado todos los productos.
                   </p>
                 ) : (
                   <p className="text-gray-500 text-center text-sm mb-4 font-medium">
@@ -1169,92 +1204,79 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
 
 
       {/* ── Dock Inferior ─────────────────────────────────────────────────────── */}
-      <div className="absolute bottom-0 left-0 w-full p-5 bg-white border-t border-slate-100 z-10 pb-safe">
-        <AnimatePresence mode="popLayout">
-          {!isShoppingMode ? (
-            /* DOCK NORMAL (Planificación) */
-            <motion.div 
-              key="dock-normal"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 20 }}
-              className="flex flex-col gap-3"
-            >
-              {/* Mostrar total de la compra si la lista está completada y tiene precio acumulado */}
-              {isListCompleted && calculateTotal() > 0 && (
-                <div className="flex justify-between items-end px-2 mb-1">
-                  <span className="text-sm font-bold text-gray-500 uppercase tracking-wider">Total de la compra</span>
-                  <span className="text-2xl font-black text-gray-900">{formatPrice(calculateTotal())}</span>
-                </div>
-              )}
-
-              <button 
-                disabled={isListCompleted}
-                onClick={() => onAddProductClick(false)} 
-                className={`w-full h-12 font-semibold text-sm rounded-2xl flex items-center justify-center gap-2 transition-all ${
-                  isListCompleted 
-                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed pointer-events-none'
-                    : 'bg-[#0f62fe] hover:bg-[#0b51d4] active:bg-[#0943b1] text-white shadow-lg shadow-blue-500/20 active:scale-[0.99]'
-                }`}
-              >
-                <Plus size={16} /> <span>Agregar producto</span>
-              </button>
-            </motion.div>
+      {(!isListCompleted || calculateTotal() > 0) && (
+        <div className="absolute bottom-0 left-0 w-full p-5 bg-white border-t border-slate-100 z-10 pb-safe">
+          {isListCompleted ? (
+            <div className="flex justify-between items-end px-2 py-1">
+              <span className="text-sm font-bold text-gray-500 uppercase tracking-wider">
+                {isShoppingMode ? 'Total estimado' : 'Total de la compra'}
+              </span>
+              <span className="text-2xl font-black text-gray-900">{formatPrice(calculateTotal())}</span>
+            </div>
           ) : (
-            /* DOCK MODO COMPRA (Ejecución) */
-            <motion.div 
-              key="dock-shopping"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 20 }}
-              className="flex flex-col gap-3"
-            >
-              {/* Fila del Total */}
-              <div className="flex justify-between items-end px-2">
-                <span className="text-sm font-bold text-gray-500 uppercase tracking-wider">Total estimado</span>
-                <span className="text-2xl font-black text-gray-900">{formatPrice(calculateTotal())}</span>
-              </div>
-
-              {/* Fila de Botones (Agregar rápido y Finalizar) */}
-              <div className="flex gap-2 w-full">
-                <button 
-                  disabled={isListCompleted}
-                  onClick={() => onAddProductClick(false)} 
-                  className={`w-12 h-12 flex-shrink-0 rounded-xl flex items-center justify-center transition-colors animate-none ${
-                    isListCompleted
-                      ? 'bg-gray-50 text-gray-300 cursor-not-allowed pointer-events-none'
-                      : 'bg-gray-100 hover:bg-gray-200 text-gray-600'
-                  }`}
-                  aria-label="Agregar producto"
+            <AnimatePresence mode="popLayout">
+              {!isShoppingMode ? (
+                /* DOCK NORMAL (Planificación) */
+                <motion.div 
+                  key="dock-normal"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 20 }}
                 >
-                  <div className="relative flex items-center justify-center">
-                    <ShoppingBag size={20} />
-                    <span className={`absolute -top-2.5 -right-1 text-sm font-extrabold select-none ${
-                      isListCompleted ? 'text-gray-300' : 'text-[#0f62fe]'
-                    }`}>
-                      +
-                    </span>
+                  <button 
+                    onClick={() => onAddProductClick(false)} 
+                    className="w-full h-12 bg-[#0f62fe] hover:bg-[#0b51d4] active:bg-[#0943b1] text-white font-semibold text-sm rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20 active:scale-[0.99] transition-all"
+                  >
+                    <Plus size={16} /> <span>Agregar producto</span>
+                  </button>
+                </motion.div>
+              ) : (
+                /* DOCK MODO COMPRA (Ejecución) */
+                <motion.div 
+                  key="dock-shopping"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 20 }}
+                  className="flex flex-col gap-3"
+                >
+                  {/* Fila del Total */}
+                  <div className="flex justify-between items-end px-2">
+                    <span className="text-sm font-bold text-gray-500 uppercase tracking-wider">Total estimado</span>
+                    <span className="text-2xl font-black text-gray-900">{formatPrice(calculateTotal())}</span>
                   </div>
-                </button>
-                
-                <button 
-                  disabled={isListCompleted}
-                  onClick={handleManualCompleteClick}
-                  className={`flex-1 h-12 font-bold text-sm rounded-xl flex items-center justify-center gap-2 shadow-lg transition-all ${
-                    isListCompleted
-                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed pointer-events-none shadow-none'
-                      : progressPercentage === 100 && totalItems > 0
-                        ? 'bg-[#24a148] hover:bg-[#1f8b3d] active:bg-[#1b7534] text-white shadow-green-500/20 active:scale-[0.99]'
-                        : 'bg-[#0f62fe] hover:bg-[#0b51d4] active:bg-[#0943b1] text-white shadow-blue-500/20 active:scale-[0.99]'
-                  }`}
-                >
-                  <CheckCircle2 size={18} /> Completar compra
-                </button>
-              </div>
-            </motion.div>
+
+                  {/* Fila de Botones (Agregar rápido y Finalizar) */}
+                  <div className="flex gap-2 w-full">
+                    <button 
+                      onClick={() => onAddProductClick(false)} 
+                      className="w-12 h-12 flex-shrink-0 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl flex items-center justify-center transition-colors animate-none"
+                      aria-label="Agregar producto"
+                    >
+                      <div className="relative flex items-center justify-center">
+                        <ShoppingBag size={20} />
+                        <span className="absolute -top-2.5 -right-1 text-[#0f62fe] text-sm font-extrabold select-none">
+                          +
+                        </span>
+                      </div>
+                    </button>
+                    
+                    <button 
+                      onClick={handleManualCompleteClick}
+                      className={`flex-1 h-12 font-bold text-sm rounded-xl flex items-center justify-center gap-2 shadow-lg active:scale-[0.99] transition-all ${
+                        progressPercentage === 100 && totalItems > 0
+                          ? 'bg-[#24a148] hover:bg-[#1f8b3d] active:bg-[#1b7534] text-white shadow-green-500/20'
+                          : 'bg-[#0f62fe] hover:bg-[#0b51d4] active:bg-[#0943b1] text-white shadow-blue-500/20'
+                      }`}
+                    >
+                      <CheckCircle2 size={18} /> Completar compra
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           )}
-        </AnimatePresence>
-      </div>
+        </div>
+      )}
 
       {/* Selector de fecha custom */}
       <CustomDatePickerModal
