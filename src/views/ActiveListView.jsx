@@ -786,15 +786,13 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
               className="w-28 h-28 object-contain mb-1 select-none opacity-80" 
             />
             {allItems.length === 0 ? (
-              <>
-                <p className="text-sm font-semibold text-slate-500">Añade productos para iniciar tu lista</p>
-                <p className="text-xs text-slate-400">Agrega productos con el botón de abajo.</p>
-              </>
+              <p className="text-base font-semibold text-slate-600/90 whitespace-nowrap">
+                Añade productos para iniciar tu lista
+              </p>
             ) : (
-              <>
-                <p className="text-sm font-semibold text-slate-500">Todo listo por aquí</p>
-                <p className="text-xs text-slate-400">Tienes ítems completados ocultos.</p>
-              </>
+              <p className="text-base font-semibold text-slate-600/90 whitespace-nowrap">
+                Todo listo por aquí
+              </p>
             )}
           </div>
         ) : (

@@ -593,15 +593,10 @@ export function HomeView({ lists, loading, removeList, onSelectList, onCreateLis
                 alt="Sin listas" 
                 className="w-28 h-28 object-contain mb-1 select-none opacity-80" 
               />
-              <p className="text-sm font-semibold text-slate-500">
+              <p className="text-base font-semibold text-slate-600/90 whitespace-nowrap">
                 {activeFilter === 'Todas'
                   ? 'Sin listas'
                   : `Sin listas ${activeFilter.toLowerCase()}`}
-              </p>
-              <p className="text-xs text-slate-400">
-                {activeFilter === 'Todas'
-                  ? 'Crea tu primera lista para comenzar.'
-                  : 'Prueba con otro filtro.'}
               </p>
             </div>
           </div>
