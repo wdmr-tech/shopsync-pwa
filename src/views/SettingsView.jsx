@@ -8,9 +8,13 @@ export function SettingsView({ onLogout, currentUser }) {
   return (
     <div className="flex-1 bg-slate-50 flex flex-col h-full overflow-hidden select-none">
       {/* Header */}
-      <header className="bg-white px-4 py-4 border-b border-gray-100 flex items-center justify-between shrink-0">
-        <h1 className="text-xl font-bold tracking-tight text-slate-800">Ajustes</h1>
-      </header>
+      <div className="shrink-0 px-4 pt-4 relative flex items-center justify-between pb-3 border-b border-gray-200 mb-3 bg-white">
+        <h1 className="text-xl font-bold tracking-tight text-[#0f62fe]">ShopSync</h1>
+
+        <span className="absolute left-1/2 -translate-x-1/2 text-lg font-bold text-gray-800 pointer-events-none">
+          Mi perfil
+        </span>
+      </div>
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto px-4 py-6 flex flex-col">
@@ -71,15 +75,17 @@ export function SettingsView({ onLogout, currentUser }) {
                 <X size={20} />
               </button>
               
-              <div className="w-16 h-16 bg-[#0f62fe] rounded-2xl flex items-center justify-center mb-4 mt-2 shadow-lg shadow-blue-500/20">
-                <ShoppingCart size={32} color="white" />
-              </div>
+              <img 
+                src="/apple-touch-icon.png" 
+                alt="ShopSync Logo" 
+                className="w-16 h-16 object-contain rounded-2xl mb-4 mt-2 shadow-lg shadow-blue-500/10" 
+              />
               
               <h2 className="text-2xl font-bold text-gray-900 mb-1">ShopSync</h2>
               <p className="text-sm font-semibold text-[#0f62fe] mb-6">v1.2.0</p>
               
               <div className="bg-gray-50 w-full p-4 rounded-2xl">
-                <p className="text-sm text-gray-600 font-medium">Desarrollado por Wladimir Acevedo</p>
+                <p className="text-sm text-gray-600 font-medium">Desarrollado (gracias a la IA) por Wladimir Acevedo</p>
                 <p className="text-[11px] text-gray-400 mt-1">Módulo Diseño UX/UI + IA - 2026</p>
               </div>
             </motion.div>

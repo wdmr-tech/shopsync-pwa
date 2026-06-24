@@ -347,7 +347,7 @@ export function HomeView({ lists, loading, removeList, onSelectList, onCreateLis
                 <div className="w-12 h-12 bg-blue-50 text-[#0f62fe] rounded-full flex items-center justify-center mb-4">
                   <Bell size={24} />
                 </div>
-                <h3 className="text-xl font-bold text-slate-800 mb-2">Tus Recordatorios</h3>
+                <h3 className="text-xl font-bold text-slate-800 mb-2">Tus recordatorios</h3>
                 {reminders.count === 0 ? (
                   <p className="text-gray-500 text-sm">No tienes recordatorios pendientes.</p>
                 ) : (
@@ -586,19 +586,17 @@ export function HomeView({ lists, loading, removeList, onSelectList, onCreateLis
             </div>
           </div>
         ) : filteredLists.length === 0 ? (
-          <div className="flex-1 overflow-y-auto lists-scroll px-4 pb-[140px] flex flex-col justify-center">
-            <div className="text-center flex flex-col items-center justify-center space-y-3">
-              <img 
-                src="/empty_state.png" 
-                alt="Sin listas" 
-                className="w-28 h-28 object-contain mb-1 select-none opacity-80" 
-              />
-              <p className="text-base font-semibold text-[#b0b7c5] whitespace-nowrap">
-                {activeFilter === 'Todas'
-                  ? 'Sin listas'
-                  : `Sin listas ${activeFilter.toLowerCase()}`}
-              </p>
-            </div>
+          <div className="flex-1 flex flex-col items-center justify-center text-center px-4 pb-[160px] select-none">
+            <img 
+              src="/empty_state.png" 
+              alt="Sin listas" 
+              className="w-28 h-28 object-contain mb-3" 
+            />
+            <p className="text-base font-semibold text-[#b0b7c5] whitespace-nowrap">
+              {activeFilter === 'Todas'
+                ? 'Sin listas. ¡Crea una nueva!'
+                : `Sin listas ${activeFilter.toLowerCase()}. ¡Crea una nueva!`}
+            </p>
           </div>
         ) : (
           <Reorder.Group

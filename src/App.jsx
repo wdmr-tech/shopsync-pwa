@@ -116,7 +116,16 @@ function App() {
     "Ya casi estamos...",
     "Sólo un poco más...",
     "Clasificando productos...",
-    "Casi listo..."
+    "Casi listo...",
+    "Ordenando pasillos...",
+    "Buscando las ofertas...",
+    "Revisando la despensa...",
+    "Organizando categorías...",
+    "Alistando el carrito...",
+    "Invocando al algoritmo...",
+    "Escribiendo nombres...",
+    "Pulido final...",
+    "¡Todo listo en breve!"
   ];
   const [loadingPhraseIndex, setLoadingPhraseIndex] = useState(0);
 
@@ -936,15 +945,17 @@ function App() {
         {/* Toast / Snackbar Notification */}
         <AnimatePresence>
           {toastMessage && (
-            <motion.div
-              initial={{ opacity: 0, y: -50 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -50 }}
-              className="fixed top-20 left-1/2 -translate-x-1/2 z-50 bg-gray-900 text-white px-4 py-2 rounded-full shadow-lg flex items-center gap-2 text-sm font-medium"
-            >
-              <CheckCircle2 size={16} className="text-green-400" />
-              {toastMessage}
-            </motion.div>
+            <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 pointer-events-none">
+              <motion.div
+                initial={{ opacity: 0, y: -20, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -100, scale: 0.95 }}
+                className="pointer-events-auto bg-[#0f62fe] text-white px-5 py-3 rounded-2xl shadow-xl shadow-blue-500/20 flex items-center gap-2.5 text-sm font-semibold whitespace-nowrap border border-blue-400/20 select-none max-w-[90vw]"
+              >
+                <CheckCircle2 size={18} className="text-white shrink-0" />
+                <span className="truncate">{toastMessage}</span>
+              </motion.div>
+            </div>
           )}
         </AnimatePresence>
           </>
@@ -1015,9 +1026,9 @@ function App() {
                       {aiDate ? formatListDate(aiDate) : "Selecciona una fecha"}
                     </button>
                     {aiDate && (
-                      <div className="mt-4 mb-2 flex items-center justify-between bg-purple-50/50 p-4 rounded-xl border border-purple-100">
+                      <div className="mt-4 mb-2 flex items-center justify-between bg-blue-50/50 p-4 rounded-xl border border-blue-100">
                         <div className="flex items-center gap-3">
-                          <Bell size={18} className={aiReminder ? "text-purple-600" : "text-gray-400"} />
+                          <Bell size={18} className={aiReminder ? "text-[#0f62fe]" : "text-gray-400"} />
                           <div>
                             <p className="text-sm font-semibold text-gray-800">Recordatorio</p>
                             <p className="text-[11px] text-gray-500">Notificar el día de la compra</p>
@@ -1025,7 +1036,7 @@ function App() {
                         </div>
                         <label className="relative inline-flex items-center cursor-pointer">
                           <input type="checkbox" className="sr-only peer" checked={aiReminder} onChange={(e) => setAiReminder(e.target.checked)} disabled={isGenerating} />
-                          <div className="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                          <div className="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#0f62fe]"></div>
                         </label>
                       </div>
                     )}

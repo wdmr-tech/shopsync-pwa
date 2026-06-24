@@ -155,7 +155,7 @@ const ItemCard = ({
       >
         <div className="flex items-center justify-between w-full gap-3">
           <div className="flex-1 min-w-0 flex flex-col">
-            <span className={`font-medium truncate ${item.completed && !isFocused ? 'line-through text-gray-500' : 'text-gray-800'}`}>
+            <span className={`font-medium line-clamp-2 ${item.completed && !isFocused ? 'line-through text-gray-500' : 'text-gray-800'}`}>
               {item.name}
             </span>
             {item.quantity && (
@@ -771,7 +771,7 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
       </div>
 
       {/* Listado Scrolleable */}
-      <div className={`flex-1 overflow-y-auto hide-scrollbar px-5 pt-4 pb-32 space-y-2.5 ${(!loading && items.length === 0) ? 'flex flex-col justify-center' : ''}`}>
+      <div className={`flex-1 overflow-y-auto hide-scrollbar px-5 pt-4 space-y-2.5 ${(!loading && items.length === 0) ? 'flex flex-col justify-center pb-[160px]' : 'pb-32'}`}>
         {loading ? (
           <div className="space-y-2.5 py-4">
             {[1, 2, 3].map((n) => (
@@ -787,7 +787,7 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
             />
             {allItems.length === 0 ? (
               <p className="text-base font-semibold text-[#b0b7c5] whitespace-nowrap">
-                Añade productos para iniciar tu lista
+                Agrega productos para iniciar tu lista
               </p>
             ) : (
               <p className="text-base font-semibold text-[#b0b7c5] whitespace-nowrap">
@@ -1198,7 +1198,7 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
                 onClick={() => onAddProductClick(false)} 
                 className="w-full h-12 bg-[#0f62fe] hover:bg-[#0b51d4] active:bg-[#0943b1] text-white font-semibold text-sm rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20 active:scale-[0.99] transition-all"
               >
-                <Plus size={16} /> <span>Agregar Producto</span>
+                <Plus size={16} /> <span>Agregar producto</span>
               </button>
             </motion.div>
           ) : (
