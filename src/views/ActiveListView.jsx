@@ -92,6 +92,7 @@ const ItemCard = ({
   setItemToEdit, 
   isShoppingMode, 
   isFocused,
+  isEditing,
   focusedItemPrice,
   setFocusedItemPrice,
   focusedItemQty,
@@ -268,7 +269,7 @@ const ItemCard = ({
                 </div>
               </div>
 
-              {/* Botón de acción: Listo */}
+              {/* Botón de acción: Listo / Guardar */}
               <div className="flex-1 flex justify-end h-[34px]">
                 <button
                   type="button"
@@ -278,7 +279,7 @@ const ItemCard = ({
                   }}
                   className="w-20 h-full bg-[#0f62fe] hover:bg-blue-700 text-white rounded-lg text-xs font-extrabold flex items-center justify-center transition-all active:scale-95 shadow-sm shrink-0"
                 >
-                  Listo
+                  {isEditing ? 'Guardar' : 'Listo'}
                 </button>
               </div>
             </motion.div>
@@ -317,12 +318,14 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
   const [focusedItemId, setFocusedItemId] = useState(null);
   const [focusedItemPrice, setFocusedItemPrice] = useState('');
   const [focusedItemQty, setFocusedItemQty] = useState(1);
+  const [wasCompletedBeforeFocus, setWasCompletedBeforeFocus] = useState(false);
 
   useEffect(() => {
     setIsShoppingMode(false);
     setFocusedItemId(null);
     setFocusedItemPrice('');
     setFocusedItemQty(1);
+    setWasCompletedBeforeFocus(false);
   }, [list?.id]);
 
   const handleFocusItem = async (item) => {
@@ -343,6 +346,7 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
     }
 
     // Enfocar el nuevo item
+    setWasCompletedBeforeFocus(item.completed);
     setFocusedItemId(item.id);
     setFocusedItemPrice(item.price !== undefined && item.price !== null ? item.price : '');
     setFocusedItemQty(getItemQuantity(item));
@@ -804,6 +808,7 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
                           setItemToEdit={setItemToEdit} 
                           isShoppingMode={isShoppingMode}
                           isFocused={item.id === focusedItemId}
+                          isEditing={item.id === focusedItemId && wasCompletedBeforeFocus}
                           focusedItemPrice={focusedItemPrice}
                           setFocusedItemPrice={setFocusedItemPrice}
                           focusedItemQty={focusedItemQty}
