@@ -289,6 +289,14 @@ const ItemCard = ({
   );
 };
 
+const PUBLISH_CATEGORY_STYLES = {
+  'Recetas': 'bg-orange-100 text-orange-700 border-orange-200 hover:bg-orange-200/50',
+  'Viajes': 'bg-teal-100 text-teal-700 border-teal-200 hover:bg-teal-200/50',
+  'Hogar': 'bg-indigo-100 text-indigo-700 border-indigo-200 hover:bg-indigo-200/50',
+  'Eventos': 'bg-rose-100 text-rose-700 border-rose-200 hover:bg-rose-200/50',
+  'Otros': 'bg-blue-100 text-[#0f62fe] border-blue-200 hover:bg-blue-200/50'
+};
+
 export function ActiveListView({ list, onBack, onAddProductClick, itemsState, onCompleteList, updateList, setActiveTab, setItemToEdit, onEditList, showToast, onDuplicateList, onPublishList, communityLists = [], onUnpublishList }) {
   const {
     items,
@@ -1086,20 +1094,25 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
                 <div>
                   <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-2">Categoría</label>
                   <div className="flex flex-wrap gap-2 mb-2">
-                    {['Recetas', 'Viajes', 'Hogar', 'Eventos', 'Otros'].map((cat) => (
-                      <button
-                        key={cat}
-                        type="button"
-                        onClick={() => setShareCategory(cat)}
-                        className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors border ${
-                          shareCategory === cat 
-                            ? 'bg-[#0f62fe] text-white border-[#0f62fe]' 
-                            : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
-                        }`}
-                      >
-                        {cat}
-                      </button>
-                    ))}
+                    {['Recetas', 'Viajes', 'Hogar', 'Eventos', 'Otros'].map((cat) => {
+                      const isActive = shareCategory === cat;
+                      const activeClass = PUBLISH_CATEGORY_STYLES[cat] || 'bg-blue-100 text-[#0f62fe] border-blue-200';
+                      
+                      return (
+                        <button
+                          key={cat}
+                          type="button"
+                          onClick={() => setShareCategory(cat)}
+                          className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors border ${
+                            isActive 
+                              ? activeClass 
+                              : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+                          }`}
+                        >
+                          {cat}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               </div>

@@ -11,6 +11,29 @@ const CATEGORY_COLORS = {
   'Todas': 'bg-gray-100 text-gray-700'
 };
 
+const ACTIVE_CATEGORY_STYLES = {
+  'Todas': {
+    chip: 'bg-blue-100 text-[#0f62fe]',
+    count: 'bg-blue-200/60 text-[#0f62fe]'
+  },
+  'Recetas': {
+    chip: 'bg-orange-100 text-orange-700',
+    count: 'bg-orange-200/60 text-orange-800'
+  },
+  'Viajes': {
+    chip: 'bg-teal-100 text-teal-700',
+    count: 'bg-teal-200/60 text-teal-800'
+  },
+  'Hogar': {
+    chip: 'bg-indigo-100 text-indigo-700',
+    count: 'bg-indigo-200/60 text-indigo-800'
+  },
+  'Eventos': {
+    chip: 'bg-rose-100 text-rose-700',
+    count: 'bg-rose-200/60 text-rose-800'
+  }
+};
+
 export function ExploreView({ onSelectTemplate, onCloneTemplate, communityLists = COMMUNITY_LISTS }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState('Todas');
@@ -66,19 +89,24 @@ export function ExploreView({ onSelectTemplate, onCloneTemplate, communityLists 
       <div className="shrink-0 flex mx-4 overflow-x-auto gap-2 pb-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
         {COMMUNITY_CATEGORIES.map((category) => {
           const isActive = activeFilter === category;
+          const styles = ACTIVE_CATEGORY_STYLES[category] || {
+            chip: 'bg-blue-100 text-[#0f62fe]',
+            count: 'bg-blue-200/60 text-[#0f62fe]'
+          };
+          
           return (
             <button
               key={category}
               onClick={() => setActiveFilter(category)}
               className={`shrink-0 px-4 py-2 rounded-full text-xs font-medium whitespace-nowrap transition-colors flex items-center justify-center gap-2 ${
                 isActive
-                  ? 'bg-blue-100 text-[#0f62fe]'
+                  ? styles.chip
                   : 'bg-gray-100 text-gray-600'
               }`}
             >
               <span>{category}</span>
               <span className={`w-5 h-5 flex items-center justify-center rounded-full text-[10px] font-bold transition-colors ${
-                isActive ? 'bg-[#0f62fe]/10 text-[#0f62fe]' : 'bg-gray-200 text-gray-500'
+                isActive ? styles.count : 'bg-gray-200 text-gray-500'
               }`}>
                 {getCountForExploreTab(category)}
               </span>
