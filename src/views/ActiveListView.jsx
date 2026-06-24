@@ -21,11 +21,13 @@ import {
   Sparkles,
   CupSoda,
   Snowflake,
-  MoreHorizontal
+  MoreHorizontal,
+  AlertTriangle
 } from 'lucide-react';
 import { motion, AnimatePresence, useAnimation } from 'framer-motion';
 import { getCategoryForProduct, formatListDate, getListStatus, formatQuantityText } from '../utils/productDictionary';
 import { CustomDatePickerModal } from '../components/CustomDatePickerModal';
+import { BottomSheet } from '../components/BottomSheet';
 
 const formatPrice = (amount) => {
   return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(amount);
@@ -522,14 +524,18 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
     currentStatus = 'en progreso';
   }
 
-  // Variables de color
-  const progressBarColor = currentStatus === 'completada' ? 'bg-green-500' 
-                         : currentStatus === 'en progreso' ? 'bg-yellow-500' 
-                         : 'bg-gray-300';
+  const isCompletedEarly = isListCompleted && completedItems < totalItems;
 
-  const badgeStyles = currentStatus === 'completada' ? 'bg-green-100 text-green-800' 
-                    : currentStatus === 'en progreso' ? 'bg-yellow-100 text-yellow-800' 
-                    : 'bg-gray-100 text-gray-600';
+  // Variables de color
+  const progressBarColor = currentStatus === 'completada'
+    ? (isCompletedEarly ? 'bg-amber-500' : 'bg-green-500')
+    : currentStatus === 'en progreso' ? 'bg-yellow-500'
+    : 'bg-gray-300';
+
+  const badgeStyles = currentStatus === 'completada'
+    ? (isCompletedEarly ? 'bg-amber-100 text-amber-800' : 'bg-green-100 text-green-800')
+    : currentStatus === 'en progreso' ? 'bg-yellow-100 text-yellow-800'
+    : 'bg-gray-100 text-gray-600';
 
   // Sincronizar estado local si cambia la prop list
   useEffect(() => {
@@ -706,8 +712,13 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
           </div>
           
           {/* Derecha: Badge de estado */}
-          <span className={`px-2.5 py-0.5 text-xs font-medium rounded-full ${badgeStyles}`}>
-            {currentStatus === 'en progreso' ? 'En progreso' : currentStatus === 'completada' ? 'Completada' : 'Pendiente'}
+          <span className={`px-2.5 py-0.5 text-xs font-medium rounded-full flex items-center gap-1 whitespace-nowrap ${badgeStyles}`}>
+            {isCompletedEarly && <AlertTriangle size={12} className="text-amber-600 shrink-0" />}
+            {currentStatus === 'en progreso' 
+              ? 'En progreso' 
+              : currentStatus === 'completada' 
+                ? (isCompletedEarly ? 'Completada antes' : 'Completada') 
+                : 'Pendiente'}
           </span>
         </div>
 
@@ -1045,24 +1056,11 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
       {/* Modal de Publicación en la Comunidad */}
       <AnimatePresence>
         {showShareModal && (
-          <>
-            {/* Backdrop de fondo */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowShareModal(false)}
-              className="absolute inset-0 bg-black/45 backdrop-blur-[1px] z-40 cursor-pointer"
-            />
-
-            {/* Contenedor del Dialog */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 15 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 15 }}
-              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-              className="absolute top-1/2 left-5 right-5 -translate-y-1/2 bg-white rounded-3xl p-6 shadow-2xl z-50 flex flex-col space-y-4 border border-slate-100"
-            >
+          <BottomSheet
+            isOpen={showShareModal}
+            onClose={() => setShowShareModal(false)}
+          >
+            <div className="flex flex-col space-y-4">
               <div className="flex flex-col items-center text-center">
                 <div className="w-12 h-12 bg-blue-50 text-[#0f62fe] rounded-full flex items-center justify-center mb-4">
                   <Globe size={24} />
@@ -1129,8 +1127,8 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
                   Publicar
                 </button>
               </div>
-            </motion.div>
-          </>
+            </div>
+          </BottomSheet>
         )}
       </AnimatePresence>
 

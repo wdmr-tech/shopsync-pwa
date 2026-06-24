@@ -54,12 +54,16 @@ function ListCard({ list, onListClick, onSwipeDelete, onDragHandleDown }) {
   // Calculamos el estado de forma síncrona aquí mismo, usando siempre la data más fresca
   const status = getListStatus(list);
 
+  const isCompletedEarly = status === 'completada' && completedItems < totalItems;
+
   // Asignación estricta de colores
-  const progressBarColor = status === 'completada' ? 'bg-green-500' 
+  const progressBarColor = status === 'completada' 
+                         ? (isCompletedEarly ? 'bg-amber-500' : 'bg-green-500')
                          : status === 'en progreso' ? 'bg-yellow-500' 
                          : 'bg-gray-300';
 
-  const badgeStyles = status === 'completada' ? 'bg-green-100 text-green-800' 
+  const badgeStyles = status === 'completada' 
+                    ? (isCompletedEarly ? 'bg-amber-100 text-amber-800' : 'bg-green-100 text-green-800')
                     : status === 'en progreso' ? 'bg-yellow-100 text-yellow-800' 
                     : 'bg-gray-100 text-gray-500';
 
@@ -92,6 +96,13 @@ function ListCard({ list, onListClick, onSwipeDelete, onDragHandleDown }) {
         }}
         className="relative z-10 w-full bg-white border border-gray-100 rounded-2xl p-4 shadow-sm flex items-center gap-3 cursor-pointer hover:border-gray-200 transition-colors select-none"
       >
+        {/* Alerta de Completado Anticipado (esquina superior derecha) */}
+        {isCompletedEarly && (
+          <div className="absolute top-3.5 right-9 text-amber-500 flex items-center justify-center animate-pulse" title="Completada anticipadamente">
+            <AlertTriangle size={14} className="stroke-[2.5]" />
+          </div>
+        )}
+
         {/* Emoji */}
         <div className="w-12 h-12 shrink-0 bg-slate-50 rounded-xl flex items-center justify-center text-3xl select-none">
           {list.emoji}
@@ -100,7 +111,7 @@ function ListCard({ list, onListClick, onSwipeDelete, onDragHandleDown }) {
         {/* Detalles */}
         <div className="flex-1 min-w-0 space-y-1.5">
           {/* Título */}
-          <h3 className="font-semibold text-slate-800 text-sm truncate leading-tight pb-1 pr-2 mb-1">
+          <h3 className={`font-semibold text-slate-800 text-sm truncate leading-tight pb-1 mb-1 ${isCompletedEarly ? 'pr-8' : 'pr-2'}`}>
             {list.name}
           </h3>
 
