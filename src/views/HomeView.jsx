@@ -720,7 +720,7 @@ export function HomeView({ lists, loading, removeList, onSelectList, onCreateLis
             <img 
               src="/empty_state.png" 
               alt="Sin listas" 
-              className="w-28 h-28 object-contain mb-3 translate-x-[7px]" 
+              className="w-28 h-28 object-contain mb-3" 
             />
             <p className="text-base font-semibold text-[#b0b7c5] whitespace-nowrap">
               {activeFilter === 'Todas'
