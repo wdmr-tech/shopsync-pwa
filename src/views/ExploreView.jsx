@@ -131,7 +131,7 @@ export function ExploreView({ onSelectTemplate, onCloneTemplate, communityLists 
   };
 
   return (
-    <div className="flex flex-col h-full relative">
+    <div className="flex-1 flex flex-col h-full w-full relative overflow-hidden">
       {/* Scrollbar vertical minimalista para el listado */}
       <style>{`
         .explore-scroll::-webkit-scrollbar { width: 4px; }

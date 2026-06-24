@@ -413,7 +413,7 @@ export function HomeView({ lists, loading, removeList, onSelectList, onCreateLis
 
 
   return (
-    <div className="flex flex-col h-full relative">
+    <div className="flex-1 flex flex-col h-full w-full relative overflow-hidden">
 
       {/* ── Modal de Recordatorios ── */}
       <AnimatePresence>
@@ -716,13 +716,13 @@ export function HomeView({ lists, loading, removeList, onSelectList, onCreateLis
             </div>
           </div>
         ) : filteredLists.length === 0 ? (
-          <div className="flex-1 flex flex-col items-center justify-center text-center px-4 pb-[160px] select-none">
+          <div className="w-full max-w-full flex-1 flex flex-col items-center justify-center text-center px-6 pb-[160px] select-none">
             <img 
               src="/empty_state.png" 
               alt="Sin listas" 
-              className="w-28 h-28 object-contain mb-3" 
+              className="w-28 h-28 object-contain mb-3 select-none" 
             />
-            <p className="text-base font-semibold text-[#b0b7c5] whitespace-nowrap">
+            <p className="text-base font-semibold text-[#b0b7c5] max-w-[280px] leading-relaxed">
               {activeFilter === 'Todas'
                 ? 'Sin listas. ¡Crea una nueva!'
                 : `Sin listas ${activeFilter.toLowerCase()}. ¡Crea una nueva!`}

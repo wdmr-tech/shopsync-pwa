@@ -767,18 +767,18 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
             ))}
           </div>
         ) : items.length === 0 ? (
-          <div className="text-center flex flex-col items-center justify-center space-y-3">
+          <div className="w-full max-w-full text-center flex flex-col items-center justify-center space-y-3 px-6 select-none">
             <img 
               src="/empty_state.png" 
               alt="Sin productos" 
               className="w-28 h-28 object-contain mb-1 select-none opacity-80" 
             />
             {allItems.length === 0 ? (
-              <p className="text-base font-semibold text-[#b0b7c5] whitespace-nowrap">
+              <p className="text-base font-semibold text-[#b0b7c5] max-w-[280px] leading-relaxed">
                 Agrega productos para iniciar tu lista
               </p>
             ) : (
-              <p className="text-base font-semibold text-[#b0b7c5] whitespace-nowrap">
+              <p className="text-base font-semibold text-[#b0b7c5] max-w-[280px] leading-relaxed">
                 Todo listo por aquí
               </p>
             )}
