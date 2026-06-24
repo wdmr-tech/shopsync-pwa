@@ -670,7 +670,7 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
                   {/* 4. Completar ahora (solo si no está completada) */}
                   {!isListCompleted && (
                     <button 
-                      onClick={() => { setShowMenu(false); setModalType('manual'); setShowCompleteModal(true); }}
+                      onClick={() => { setShowMenu(false); handleManualCompleteClick(); }}
                       className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-2 text-left whitespace-nowrap"
                     >
                       <CheckCircle2 size={16} className="text-[#0f62fe]" /> Completar ahora
@@ -907,7 +907,7 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
             >
               <div className="space-y-1.5 flex flex-col items-center">
                 <h3 className="text-xl font-bold text-slate-800 text-center mb-2">
-                  {modalType === 'auto' ? '¡Lista completada!' : '¿Completar lista antes?'}
+                  {modalType === 'auto' ? '¿Completar compra?' : '¿Completar lista antes?'}
                 </h3>
                 {modalType === 'auto' ? (
                   <p className="text-gray-500 text-center text-sm mb-4 font-medium">
@@ -933,8 +933,8 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
                   onClick={handleConfirmCompletion}
                   className={`flex-1 h-11 font-semibold text-sm rounded-xl transition-colors ${
                     modalType === 'auto'
-                      ? 'bg-[#24a148] hover:bg-green-600 text-white'
-                      : 'bg-yellow-500 hover:bg-yellow-600 text-white'
+                      ? 'bg-[#24a148] hover:bg-[#1f8b3d] active:bg-[#1b7534] text-white shadow-md shadow-green-500/10'
+                      : 'bg-yellow-500 hover:bg-yellow-600 text-white shadow-md shadow-yellow-500/10'
                   }`}
                 >
                   Completar
@@ -1178,10 +1178,24 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 20 }}
+              className="flex flex-col gap-3"
             >
+              {/* Mostrar total de la compra si la lista está completada y tiene precio acumulado */}
+              {isListCompleted && calculateTotal() > 0 && (
+                <div className="flex justify-between items-end px-2 mb-1">
+                  <span className="text-sm font-bold text-gray-500 uppercase tracking-wider">Total de la compra</span>
+                  <span className="text-2xl font-black text-gray-900">{formatPrice(calculateTotal())}</span>
+                </div>
+              )}
+
               <button 
+                disabled={isListCompleted}
                 onClick={() => onAddProductClick(false)} 
-                className="w-full h-12 bg-[#0f62fe] hover:bg-[#0b51d4] active:bg-[#0943b1] text-white font-semibold text-sm rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20 active:scale-[0.99] transition-all"
+                className={`w-full h-12 font-semibold text-sm rounded-2xl flex items-center justify-center gap-2 transition-all ${
+                  isListCompleted 
+                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed pointer-events-none'
+                    : 'bg-[#0f62fe] hover:bg-[#0b51d4] active:bg-[#0943b1] text-white shadow-lg shadow-blue-500/20 active:scale-[0.99]'
+                }`}
               >
                 <Plus size={16} /> <span>Agregar producto</span>
               </button>
@@ -1204,27 +1218,37 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
               {/* Fila de Botones (Agregar rápido y Finalizar) */}
               <div className="flex gap-2 w-full">
                 <button 
+                  disabled={isListCompleted}
                   onClick={() => onAddProductClick(false)} 
-                  className="w-12 h-12 flex-shrink-0 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl flex items-center justify-center transition-colors animate-none"
+                  className={`w-12 h-12 flex-shrink-0 rounded-xl flex items-center justify-center transition-colors animate-none ${
+                    isListCompleted
+                      ? 'bg-gray-50 text-gray-300 cursor-not-allowed pointer-events-none'
+                      : 'bg-gray-100 hover:bg-gray-200 text-gray-600'
+                  }`}
                   aria-label="Agregar producto"
                 >
                   <div className="relative flex items-center justify-center">
                     <ShoppingBag size={20} />
-                    <span className="absolute -top-2.5 -right-1 text-[#0f62fe] text-sm font-extrabold select-none">
+                    <span className={`absolute -top-2.5 -right-1 text-sm font-extrabold select-none ${
+                      isListCompleted ? 'text-gray-300' : 'text-[#0f62fe]'
+                    }`}>
                       +
                     </span>
                   </div>
                 </button>
                 
                 <button 
-                  onClick={() => { setModalType('manual'); setShowCompleteModal(true); }}
-                  className={`flex-1 h-12 font-bold text-sm rounded-xl flex items-center justify-center gap-2 shadow-lg active:scale-[0.99] transition-all ${
-                    progressPercentage === 100 && totalItems > 0
-                      ? 'bg-[#24a148] hover:bg-[#1f8b3d] active:bg-[#1b7534] text-white shadow-green-500/20'
-                      : 'bg-[#0f62fe] hover:bg-[#0b51d4] active:bg-[#0943b1] text-white shadow-blue-500/20'
+                  disabled={isListCompleted}
+                  onClick={handleManualCompleteClick}
+                  className={`flex-1 h-12 font-bold text-sm rounded-xl flex items-center justify-center gap-2 shadow-lg transition-all ${
+                    isListCompleted
+                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed pointer-events-none shadow-none'
+                      : progressPercentage === 100 && totalItems > 0
+                        ? 'bg-[#24a148] hover:bg-[#1f8b3d] active:bg-[#1b7534] text-white shadow-green-500/20 active:scale-[0.99]'
+                        : 'bg-[#0f62fe] hover:bg-[#0b51d4] active:bg-[#0943b1] text-white shadow-blue-500/20 active:scale-[0.99]'
                   }`}
                 >
-                  <CheckCircle2 size={18} /> Finalizar Compra
+                  <CheckCircle2 size={18} /> Completar compra
                 </button>
               </div>
             </motion.div>
