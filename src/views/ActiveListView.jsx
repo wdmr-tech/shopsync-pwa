@@ -580,6 +580,7 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
     currentStatus = 'en progreso';
   }
 
+  const isEffectiveCompleted = currentStatus === 'completada';
   const isCompletedEarly = isListCompleted && completedItems < totalItems;
 
   // Variables de color
@@ -1227,9 +1228,9 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
 
 
       {/* ── Dock Inferior ─────────────────────────────────────────────────────── */}
-      {(!isListCompleted || calculateTotal() > 0) && (
+      {(!isEffectiveCompleted || calculateTotal() > 0) && (
         <div className="absolute bottom-0 left-0 w-full p-5 bg-white border-t border-slate-100 z-10 pb-safe">
-          {isListCompleted ? (
+          {isEffectiveCompleted ? (
             <div className="flex justify-between items-end px-2 py-1">
               <span className="text-sm font-bold text-gray-500 uppercase tracking-wider">
                 {isShoppingMode ? 'Total estimado' : 'Total de la compra'}
