@@ -747,7 +747,7 @@ export function ActiveListView({ list, onBack, onAddProductClick, itemsState, on
                 }}
                 className="flex items-center gap-1.5 leading-none bg-blue-50/50 px-3 py-2 rounded-md cursor-pointer hover:bg-blue-50 active:bg-blue-100 transition-colors"
               >
-                <Calendar size={13} className="text-blue-400" />
+                <Calendar size={13} className="text-[#0f62fe] shrink-0" />
                 <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">
                   {formatListDate(list?.plannedDate || list?.date)}
                 </span>
